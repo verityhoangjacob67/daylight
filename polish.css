@@ -1,0 +1,69 @@
+/* Final cross-state details: focus, disabled, dialog, and browser surfaces. */
+::selection {
+  background: #cde9d8;
+  color: #232c2c;
+}
+
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+button:disabled:hover,
+button[aria-disabled="true"]:hover {
+  transform: none;
+  background: inherit;
+}
+
+.close-dialog:focus-visible,
+.small-action:focus-visible,
+.button-quiet:focus-visible,
+.button-secondary:focus-visible,
+.timer-preset:focus-visible {
+  outline: 3px solid #6cae8d;
+  outline-offset: 3px;
+}
+
+.app-dialog {
+  scrollbar-color: #b6c9bb transparent;
+  scrollbar-width: thin;
+}
+
+.toast {
+  max-width: min(420px, calc(100vw - 32px));
+  text-align: center;
+}
+
+body.dark-mode {
+  scrollbar-color: #53675b #171d1b;
+}
+
+body.dark-mode ::selection {
+  background: #47765a;
+  color: #f3faf4;
+}
+
+body.dark-mode .close-dialog,
+body.dark-mode .button-quiet,
+body.dark-mode .small-action {
+  background: #2a352f;
+  color: #c5d5ca;
+}
+
+body.dark-mode .close-dialog:hover,
+body.dark-mode .button-quiet:hover,
+body.dark-mode .small-action:hover {
+  background: #35463c;
+  color: #e7eee9;
+}
+
+body.dark-mode .app-dialog::backdrop {
+  background: rgba(5, 10, 8, .66);
+}
+
+@media (max-width: 520px) {
+  .toast {
+    bottom: 86px;
+  }
+}

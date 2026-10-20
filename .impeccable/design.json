@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T02:16:30.000Z",
+  "title": "Design System: Daylight",
+  "extensions": {
+    "colorMeta": {
+      "green": {
+        "role": "primary",
+        "displayName": "Moss Green",
+        "canonical": "#387e67",
+        "tonalRamp": ["#17382d", "#20543f", "#28654f", "#387e67", "#66a982", "#a5d0b2", "#d1e9d8", "#edf7ef"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "#f7f8f4",
+        "tonalRamp": ["#202824", "#34423b", "#52625a", "#78817e", "#aeb8b1", "#d7ded8", "#e8ebe6", "#f7f8f4"]
+      },
+      "mint": {
+        "role": "secondary",
+        "displayName": "Pale Mint",
+        "canonical": "#e5f3e9",
+        "tonalRamp": ["#1d3326", "#2d513b", "#47765a", "#6f9e7d", "#9fc5a8", "#cde9d8", "#e5f3e9", "#f3faf4"]
+      },
+      "sun": {
+        "role": "tertiary",
+        "displayName": "Quiet Sun",
+        "canonical": "#f2bf63",
+        "tonalRamp": ["#4b3515", "#74531d", "#a77a2f", "#d09b43", "#f2bf63", "#f7d58f", "#fbe8bd", "#fff7e7"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Manrope Display",
+        "purpose": "Page titles, card titles, and important encouragement."
+      },
+      "body": {
+        "displayName": "DM Sans Body",
+        "purpose": "Reading copy, metadata, controls, and labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient-card",
+        "value": "0 12px 34px rgba(39,66,54,.055)",
+        "purpose": "Very soft depth under primary cards."
+      },
+      {
+        "name": "control",
+        "value": "0 4px 11px rgba(56,126,103,.14)",
+        "purpose": "Small lift beneath primary actions."
+      }
+    ],
+    "motion": [
+      {
+        "name": "surface-hover",
+        "value": "transform .16s, border-color .16s",
+        "purpose": "Subtle lift and border shift on interactive surfaces."
+      },
+      {
+        "name": "view-appear",
+        "value": ".22s ease",
+        "purpose": "Short view transition when changing app sections."
+      }
+    ],
+    "breakpoints": [
+      {"name": "wide", "value": "1400px"},
+      {"name": "desktop", "value": "1100px"},
+      {"name": "mobile", "value": "800px"},
+      {"name": "small", "value": "520px"}
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The clear forward action for starting or saving a meaningful step.",
+      "html": "<button class=\"ds-button-primary\">Start this step <span aria-hidden=\"true\">→</span></button>",
+      "css": ".ds-button-primary{height:43px;padding:0 17px;border:0;border-radius:12px;background:#387e67;color:#fff;font:700 12px 'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:10px;justify-content:center;box-shadow:0 4px 11px rgba(56,126,103,.14);transition:background .15s,transform .15s}.ds-button-primary:hover{background:#28654f;transform:translateY(-1px)}.ds-button-primary:focus-visible{outline:3px solid #6cae8d;outline-offset:3px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A quieter alternative for supporting actions.",
+      "html": "<button class=\"ds-button-secondary\">Add a task</button>",
+      "css": ".ds-button-secondary{height:40px;padding:0 14px;border:1px solid #e8ebe6;border-radius:13px;background:#fff;color:#28654f;font:700 11px 'DM Sans',sans-serif}.ds-button-secondary:hover{border-color:#b7d5c0;background:#f7fbf7}.ds-button-secondary:focus-visible{outline:3px solid #6cae8d;outline-offset:3px}"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "A calm, scan-friendly route through the student workspace.",
+      "html": "<button class=\"ds-nav-item\"><span aria-hidden=\"true\">⌂</span>Today</button>",
+      "css": ".ds-nav-item{height:46px;padding:0 13px;border:0;border-radius:12px;background:transparent;color:#68736e;font:600 12px 'DM Sans',sans-serif;text-align:left}.ds-nav-item:hover{background:#f6f8f5;color:#232c2c}.ds-nav-item:focus-visible{outline:3px solid #6cae8d;outline-offset:3px}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A softly elevated container for a focused group of content.",
+      "html": "<article class=\"ds-card\"><p class=\"ds-card-label\">YOUR NEXT SMALL STEP</p><h2>Open your lab report</h2><p>Just getting started counts.</p></article>",
+      "css": ".ds-card{padding:20px;border:1px solid #e8ebe6;border-radius:18px;background:#fff;box-shadow:0 12px 34px rgba(39,66,54,.055);color:#232c2c}.ds-card-label{margin:0 0 8px;color:#929c96;font:700 10px 'DM Sans',sans-serif;letter-spacing:1.35px}.ds-card h2{margin:0;font:700 21px/1.2 Manrope,sans-serif;letter-spacing:-.45px}.ds-card p:last-child{color:#78817e;font:400 12px/1.5 'DM Sans',sans-serif}"
+    },
+    {
+      "name": "Settings Switch",
+      "kind": "input",
+      "refersTo": "switch",
+      "description": "A compact preference control for comfort and theme settings.",
+      "html": "<label class=\"ds-switch\"><input type=\"checkbox\" /><span></span><b>Dark mode</b></label>",
+      "css": ".ds-switch{display:inline-flex;align-items:center;gap:10px;color:#53635a;font:400 11px 'DM Sans',sans-serif}.ds-switch input{position:absolute;opacity:0}.ds-switch span{position:relative;width:38px;height:22px;border-radius:99px;background:#d9ded8}.ds-switch span:after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0002;transition:transform .2s}.ds-switch input:checked+span{background:#64a17b}.ds-switch input:checked+span:after{transform:translateX(16px)}.ds-switch input:focus-visible+span{outline:3px solid #6cae8d;outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Softer Start.",
+    "overview": "Daylight is a quiet, optimistic student workspace. Its visual system makes the interface feel approachable rather than demanding: warm paper backgrounds, leafy green actions, small moments of sun and mint, and generous breathing room around the next step. The design should feel like a calm desk at the beginning of a study session, not a productivity scoreboard.\n\nThe product uses tonal layering instead of dramatic decoration. White cards sit gently on cool paper, progress surfaces use pale green, and typography carries hierarchy through weight and scale. Dark mode keeps the same emotional character with deep green-black surfaces and readable mint-tinted text.",
+    "keyCharacteristics": ["Calm and supportive rather than urgent.", "Tactile but lightweight rounded surfaces.", "Green as the action and progress voice.", "Clear hierarchy with Manrope display text and DM Sans utility copy.", "Progress without streak pressure or visual noise."],
+    "rules": [
+      {"name": "The Green Action Rule", "body": "Use green for choices that move the student forward: primary buttons, active navigation, progress, and focused states. Do not use it as a decorative wash everywhere.", "section": "colors"}
+    ],
+    "dos": ["Do make the next small step the clearest visual priority.", "Do use #387e67 for meaningful forward actions and progress.", "Do preserve readable contrast for secondary text in both themes.", "Do use whitespace and tonal surfaces to create calm hierarchy.", "Do keep motion subtle and respect the reduced-motion preference.", "Do keep language supportive, practical, and free of shame."],
+    "donts": ["Don't introduce streaks, warning-red urgency, or competitive dashboards.", "Don't use gradients, hard offset shadows, or decorative visual noise.", "Don't make every element a rounded card; reserve cards for meaningful grouped content.", "Don't use dark gray text on dark surfaces or light gray text on light surfaces.", "Don't replace the moss-green action voice with many saturated accent colors.", "Don't turn the coach into a clinical, diagnostic, or authoritative care experience."]
+  }
+}

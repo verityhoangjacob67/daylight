@@ -1,0 +1,13 @@
+{
+  "name": "daylight-student-productivity",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A supportive student productivity prototype with an optional stateless AI coach backend.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,121 @@
+:root {
+  --type-body: 14px;
+  --type-small: 12px;
+  --type-meta: 11px;
+  --type-label: 10px;
+  --leading-body: 1.55;
+  --leading-tight: 1.35;
+}
+
+body {
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.subhead,
+.progress-note,
+.resume-copy p,
+.kind-reminder p,
+.privacy-note p,
+.resource-description,
+.resource-detail-description,
+.resource-purpose p,
+.resource-disclaimer,
+.coach-more p,
+.focus-encouragement {
+  font-size: var(--type-small);
+  line-height: var(--leading-body);
+}
+
+.nav-item,
+.mobile-nav-item,
+.text-button,
+.subtle-button,
+.back-button,
+.priority-title,
+.priority-copy,
+.priority-sub,
+.task-card-heading p,
+.task-progress-copy,
+.resource-open,
+.setting-row,
+.profile-row b,
+.profile-row small,
+.date-chip,
+.progress-meta,
+.resource-summary,
+.resource-meta,
+.detail-meta b,
+.coach-label,
+.coach-footnote,
+.focus-task-label {
+  font-size: var(--type-meta);
+  line-height: var(--leading-tight);
+}
+
+.nav-item,
+.mobile-nav-item,
+.text-button,
+.subtle-button,
+.back-button,
+.resource-open,
+.setting-row {
+  font-weight: 600;
+}
+
+.eyebrow,
+.tiny-label,
+.sidebar-label,
+.coach-label {
+  font-size: var(--type-label);
+  line-height: 1.25;
+}
+
+.welcome-row h1,
+.page-heading h1 {
+  text-wrap: balance;
+}
+
+.next-copy h2,
+.section-heading h2,
+.task-card-heading h3,
+.resource-card h2,
+.focus-wrap h1,
+.setting-group > div:first-child h2 {
+  text-wrap: balance;
+}
+
+.next-copy p,
+.subhead,
+.resource-description,
+.resource-detail-description,
+.resource-purpose p,
+.privacy-note p,
+.coach-intro p,
+.coach-more p {
+  max-width: 65ch;
+}
+
+body.dark-mode {
+  --leading-body: 1.6;
+}
+
+@media (max-width: 520px) {
+  body {
+    font-size: 14px;
+  }
+
+  .subhead,
+  .progress-note,
+  .resume-copy p,
+  .kind-reminder p,
+  .privacy-note p,
+  .resource-description,
+  .resource-detail-description,
+  .resource-purpose p,
+  .resource-disclaimer,
+  .coach-more p,
+  .focus-encouragement {
+    font-size: 12px;
+  }
+}

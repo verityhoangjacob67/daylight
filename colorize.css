@@ -1,0 +1,120 @@
+/* Semantic color roles: readable hierarchy without adding visual noise. */
+:root {
+  --text-secondary: #5f6f66;
+  --text-tertiary: #64756a;
+  --surface-selected: #e3f1e6;
+  --surface-info: #e8f1f4;
+  --surface-warning: #fbefd8;
+  --surface-success: #dcefe2;
+  --accent-info: #356b78;
+  --accent-warning: #8b6724;
+  --accent-success: #327553;
+}
+
+body:not(.dark-mode) .sidebar-label,
+body:not(.dark-mode) .eyebrow,
+body:not(.dark-mode) .tiny-label,
+body:not(.dark-mode) .top-date,
+body:not(.dark-mode) .gentle-hint,
+body:not(.dark-mode) .profile-row small,
+body:not(.dark-mode) .subhead,
+body:not(.dark-mode) .priority-sub,
+body:not(.dark-mode) .task-card-heading p,
+body:not(.dark-mode) .task-progress-copy,
+body:not(.dark-mode) .resource-summary,
+body:not(.dark-mode) .resource-description,
+body:not(.dark-mode) .resource-meta,
+body:not(.dark-mode) .resource-detail-description,
+body:not(.dark-mode) .resource-purpose p,
+body:not(.dark-mode) .resource-disclaimer,
+body:not(.dark-mode) .coach-more p,
+body:not(.dark-mode) .focus-task-label,
+body:not(.dark-mode) .focus-encouragement,
+body:not(.dark-mode) .setting-group > div:first-child p,
+body:not(.dark-mode) .privacy-note p {
+  color: var(--text-secondary);
+}
+
+body:not(.dark-mode) .nav-item,
+body:not(.dark-mode) .mobile-nav-item,
+body:not(.dark-mode) .text-button,
+body:not(.dark-mode) .subtle-button,
+body:not(.dark-mode) .back-button,
+body:not(.dark-mode) .resource-open,
+body:not(.dark-mode) .coach-resource-link,
+body:not(.dark-mode) .resource-category,
+body:not(.dark-mode) .setting-row {
+  color: var(--text-tertiary);
+}
+
+body:not(.dark-mode) .nav-item.active,
+body:not(.dark-mode) .mobile-nav-item.active {
+  background: var(--surface-selected);
+  color: var(--green-dark);
+}
+
+body:not(.dark-mode) .nav-item:hover,
+body:not(.dark-mode) .mobile-nav-item:hover {
+  background: #eff7f0;
+  color: var(--ink);
+}
+
+body:not(.dark-mode) .priority-due.soon {
+  background: var(--surface-warning);
+  color: var(--accent-warning);
+}
+
+body:not(.dark-mode) .progress-card,
+body:not(.dark-mode) .privacy-note,
+body:not(.dark-mode) .coach-disclosure {
+  background: var(--surface-success);
+  border-color: #c8e3cf;
+}
+
+body:not(.dark-mode) .resource-kind {
+  background: var(--surface-info);
+  color: var(--accent-info);
+}
+
+body:not(.dark-mode) .progress-fill,
+body:not(.dark-mode) .status-dot,
+body:not(.dark-mode) .switch input:checked + .switch-track {
+  background: var(--accent-success);
+}
+
+body:not(.dark-mode) .progress-meta,
+body:not(.dark-mode) .progress-note,
+body:not(.dark-mode) .resume-copy p,
+body:not(.dark-mode) .kind-reminder p,
+body:not(.dark-mode) .capture-card small {
+  color: var(--text-secondary);
+}
+
+body.dark-mode {
+  --text-secondary: #b8c9be;
+  --text-tertiary: #c5d5ca;
+  --surface-selected: #294638;
+  --surface-info: #263c42;
+  --surface-warning: #4a3d26;
+  --surface-success: #294335;
+  --accent-info: #98cfda;
+  --accent-warning: #e4bd70;
+  --accent-success: #86c99e;
+}
+
+body.dark-mode .priority-due.soon {
+  background: var(--surface-warning);
+  color: var(--accent-warning);
+}
+
+body.dark-mode .progress-card,
+body.dark-mode .privacy-note,
+body.dark-mode .coach-disclosure {
+  background: var(--surface-success);
+  border-color: #42624d;
+}
+
+body.dark-mode .resource-kind {
+  background: var(--surface-info);
+  color: var(--accent-info);
+}

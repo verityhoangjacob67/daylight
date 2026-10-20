@@ -1,0 +1,199 @@
+/* Touch adaptation: preserve the desktop information architecture while enlarging
+   controls and preventing narrow layouts from becoming cramped. */
+@media (pointer: coarse) {
+  button,
+  select,
+  input[type="checkbox"] + .switch-track,
+  .resource-open,
+  .text-button,
+  .subtle-button,
+  .back-button {
+    min-height: 44px;
+  }
+
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .switch {
+    width: 44px;
+    height: 26px;
+  }
+
+  .switch-track:before {
+    width: 20px;
+    height: 20px;
+  }
+
+  .switch input:checked + .switch-track:before {
+    transform: translateX(18px);
+  }
+
+  .priority-row,
+  .task-card,
+  .resource-card {
+    transition: border-color .15s;
+  }
+
+  .priority-row:active,
+  .task-card:active,
+  .resource-card:active {
+    border-color: #9fc8aa;
+  }
+}
+
+@media (max-width: 800px) {
+  .main-content {
+    padding-bottom: 116px;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: var(--paper);
+  }
+
+  .page-heading {
+    flex-wrap: wrap;
+  }
+
+  .task-toolbar,
+  .resource-filters {
+    gap: 10px;
+  }
+
+  .filter-tab,
+  .sort-control select,
+  .resource-filters select,
+  .saved-filter {
+    min-height: 44px;
+  }
+
+  .priority-open,
+  .more-btn,
+  .close-dialog {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 520px) {
+  .main-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .topbar {
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+
+  .welcome-row {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .welcome-row > div:first-child {
+    min-width: 0;
+  }
+
+  .welcome-row h1 {
+    overflow-wrap: anywhere;
+  }
+
+  .date-chip {
+    flex: 0 0 auto;
+  }
+
+  .next-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .next-footer .button-primary {
+    width: 100%;
+  }
+
+  .task-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .filter-tabs {
+    width: 100%;
+  }
+
+  .filter-tab {
+    flex: 1;
+  }
+
+  .sort-control {
+    width: 100%;
+  }
+
+  .sort-control select {
+    width: 100%;
+  }
+
+  .priority-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .priority-copy {
+    flex: 1 1 calc(100% - 76px);
+  }
+
+  .priority-due {
+    margin-left: 33px;
+  }
+
+  .priority-open {
+    margin-left: auto;
+  }
+
+  .resource-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-summary {
+    flex-wrap: wrap;
+  }
+
+  .resource-summary span:last-child {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .resource-detail-actions {
+    flex-direction: column-reverse;
+  }
+
+  .resource-detail-actions > * {
+    width: 100%;
+  }
+
+  .coach-composer .button-primary {
+    min-width: 78px;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-nav-item {
+    font-size: 8px;
+  }
+
+  .mobile-nav-item span {
+    font-size: 17px;
+  }
+
+  .date-chip {
+    min-width: 60px;
+  }
+
+  .next-top .tiny-label {
+    max-width: 180px;
+    line-height: 1.35;
+  }
+}

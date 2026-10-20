@@ -1,0 +1,41 @@
+.auth-dialog {
+  text-align: left;
+}
+
+.auth-dialog form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-dialog .reset-sun {
+  align-self: center;
+}
+
+.auth-dialog .field-label {
+  margin-top: 10px;
+}
+
+.auth-name-field.hidden {
+  display: none;
+}
+
+.auth-account-fields.hidden {
+  display: none;
+}
+
+.auth-dialog .text-input {
+  margin-bottom: 4px;
+}
+
+.auth-dialog .done-actions {
+  margin-top: 14px;
+}
+
+.auth-dialog > .button-quiet {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auth-local-button {
+  font-size: 12px;
+}
