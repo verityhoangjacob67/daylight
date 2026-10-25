@@ -253,5 +253,260 @@ body.dark-mode .check-button {
 
 body.dark-mode .task-step.done span,
 body.dark-mode .priority-row.is-done .priority-title {
-  color: #738178;
+  color: #97a89d;
+}
+
+/* ---- Contrast and surface repairs --------------------------------------
+   Small controls keep the light-theme surfaces unless they are reset here;
+   on the dark cards those read as glowing white chips. Each pair below is
+   measured to stay above 4.5:1 for body text and 3:1 for icons. */
+
+body.dark-mode .button-primary {
+  background: #69b790;
+  color: #11241b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .32);
+}
+
+body.dark-mode .button-primary:hover {
+  background: #8bcba8;
+  color: #11241b;
+}
+
+body.dark-mode .task-color {
+  background: #3a3325;
+  color: #e0c090;
+}
+
+body.dark-mode .task-color.math {
+  background: #26313f;
+  color: #a8bde2;
+}
+
+body.dark-mode .task-color.english {
+  background: #3d2f26;
+  color: #e0ab84;
+}
+
+body.dark-mode .task-color.history {
+  background: #302c42;
+  color: #bcb0e6;
+}
+
+body.dark-mode .next-icon {
+  background: #3a3325;
+  color: #e0c090;
+}
+
+body.dark-mode .focus-ornament,
+body.dark-mode .coach-avatar {
+  color: #a6d7b8;
+}
+
+body.dark-mode .capture-plus {
+  background: #2c4a39;
+  color: #a6d7b8;
+}
+
+body.dark-mode .brand-mark {
+  background: #2c4a39;
+  color: #a6d7b8;
+}
+
+body.dark-mode .avatar {
+  background: #3a2f24;
+  color: #e0b48d;
+}
+
+body.dark-mode .resume-icon {
+  background: #322f45;
+}
+
+body.dark-mode .step-number,
+body.dark-mode .step-field .step-bullet {
+  background: #3a3325;
+  color: #e0c090;
+}
+
+body.dark-mode .reset-sun {
+  background: #3a3325;
+  color: #e8c07a;
+}
+
+body.dark-mode .done-spark {
+  background: #2d4636;
+  color: #a6d7b8;
+}
+
+body.dark-mode .subject-tag,
+body.dark-mode .chemistry {
+  color: #d8c08a;
+}
+
+body.dark-mode .task-due {
+  background: #2c3931;
+  color: #c3d4c8;
+}
+
+body.dark-mode .task-due.soon {
+  background: #4a3d26;
+  color: #e4bd70;
+}
+
+body.dark-mode .quiet-badge {
+  background: #2c3931;
+  color: #b2c0b8;
+}
+
+body.dark-mode .filter-tab {
+  color: #b2c0b8;
+}
+
+body.dark-mode .filter-tab.selected {
+  background: #2b4a3a;
+  color: #a6dbbb;
+}
+
+body.dark-mode .saved-filter {
+  color: #c2d0c7;
+}
+
+body.dark-mode .saved-filter.active {
+  background: #3b2b28;
+  border-color: #573b36;
+  color: #e0a49e;
+}
+
+body.dark-mode .save-resource {
+  background: #26332d;
+  border-color: var(--line);
+  color: #a6d7b8;
+}
+
+body.dark-mode .save-resource:hover,
+body.dark-mode .save-resource.saved {
+  background: #3b2b28;
+  border-color: #573b36;
+  color: #e0a49e;
+}
+
+body.dark-mode .resource-detail-category {
+  color: #9fc7a8;
+}
+
+body.dark-mode .resource-search kbd {
+  border-color: var(--line);
+  color: #b2c0b8;
+}
+
+body.dark-mode .mini-check,
+body.dark-mode .step-check {
+  background: #26332d;
+  border-color: #52645a;
+  color: #8dbb9b;
+}
+
+body.dark-mode .mini-check.checked,
+body.dark-mode .priority-row.is-done .check-button {
+  background: #5d9d76;
+  border-color: #5d9d76;
+  color: #0f2018;
+}
+
+body.dark-mode .step-check:hover {
+  background: #2e4038;
+}
+
+body.dark-mode .task-progress-track,
+body.dark-mode .bar-track {
+  background: #35473c;
+}
+
+body.dark-mode .task-progress-track span,
+body.dark-mode .bar-fill {
+  background: #78b58c;
+}
+
+body.dark-mode .week-day.today .bar-fill {
+  background: #6fae8a;
+}
+
+body.dark-mode .progress-fill {
+  background: #5f9c72;
+}
+
+body.dark-mode .task-step {
+  color: #b2c0b8;
+}
+
+body.dark-mode .week-chip {
+  color: #b2c0b8;
+}
+
+body.dark-mode .week-chip b {
+  color: #dce9e0;
+}
+
+body.dark-mode .overview-card strong small {
+  color: #b2c0b8;
+}
+
+body.dark-mode .next-copy p,
+body.dark-mode .coach-more summary {
+  color: #b2c0b8;
+}
+
+body.dark-mode .coach-disclosure,
+body.dark-mode .coach-disclosure p {
+  color: #b2c0b8;
+}
+
+body.dark-mode .coach-disclosure-icon {
+  color: #9ec7a2;
+}
+
+body.dark-mode .privacy-note > span {
+  color: #a6d7b8;
+}
+
+body.dark-mode .typing {
+  color: #a9bcae;
+}
+
+body.dark-mode .coach-error {
+  background: #3a2724;
+  color: #f0aaa2;
+}
+
+body.dark-mode .timer-face span {
+  color: var(--ink);
+}
+
+body.dark-mode .timer-face small {
+  color: #b2c0b8;
+}
+
+body.dark-mode .icon-button {
+  background: #2c4a39;
+  color: #a6d7b8;
+}
+
+body.dark-mode .coach-composer textarea {
+  background: #202824;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+body.dark-mode .setting-row select {
+  background: #202824;
+  border-color: var(--line);
+  color: var(--ink);
+  color-scheme: dark;
+}
+
+body.dark-mode .task-card-footer,
+body.dark-mode .week-bars,
+body.dark-mode .dialog-actions,
+body.dark-mode .focus-bottom,
+body.dark-mode .resource-meta {
+  border-color: var(--line);
 }

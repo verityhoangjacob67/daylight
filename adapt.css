@@ -29,6 +29,13 @@
     min-height: 44px;
   }
 
+  /* iOS Safari zooms the page when a focused field is smaller than 16px. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select:not([multiple]),
+  textarea:not([hidden]) {
+    font-size: 16px;
+  }
+
   /* Keep square check controls square; enlarging their height alone distorts them. */
   .check-button {
     width: 26px;
