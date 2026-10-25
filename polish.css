@@ -1,4 +1,31 @@
 /* Final cross-state details: focus, disabled, dialog, and browser surfaces. */
+
+/* Sidebar tabs can be dragged into a personal order. */
+@media (pointer: fine) {
+  .nav-list .nav-item {
+    cursor: grab;
+  }
+}
+
+@media (pointer: coarse) {
+  .nav-list .nav-item {
+    touch-action: none;
+  }
+}
+
+.nav-item.dragging {
+  position: relative;
+  z-index: 1;
+  background: #eaf4ec;
+  opacity: .85;
+  cursor: grabbing;
+  box-shadow: 0 10px 24px rgba(39, 66, 54, .18);
+}
+
+body.dark-mode .nav-item.dragging {
+  background: #294638;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+}
 ::selection {
   background: #cde9d8;
   color: #232c2c;
