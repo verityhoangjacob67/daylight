@@ -140,8 +140,16 @@
     finally{clearTimeout(timeoutId)}
   }
   async function submitCoachMessage(clean){
-    coachLastPrompt=clean;coachMessages.push({role:'user',text:clean});$('#coach-input').value='';
+    coachLastPrompt=clean;coachMessages.push({role:'user',text:clean});$('#coach-input').value='';resizeCoachInput();
     await requestCoachReply(clean);
+  }
+  function resizeCoachInput(){
+    const input=$('#coach-input');if(!input)return;
+    const maxHeight=110;
+    input.style.height='auto';
+    const needed=input.scrollHeight+2;
+    input.style.height=Math.min(needed,maxHeight)+'px';
+    input.style.overflowY=needed>maxHeight?'auto':'hidden';
   }
   async function sendCoachMessage(text){
     const clean=text.trim().slice(0,500);if(!clean||coachBusy)return;
@@ -156,7 +164,7 @@
     else{coachContext.attempted.push(proposal.strategy);coachMessages.push({role:'user',text:'That one does not feel like a fit. Could I try another approach?'});}
     renderCoach();if(kind==='different')requestCoachReply('Please offer a different strategy for the same challenge.');
   }
-  function clearCoachConversation(showNotice=true){coachRequestId++;coachMessages=[];coachContext={challenge:'',attempted:[],preferred:''};coachBusy=false;coachLastPrompt='';$('#coach-input').value='';$('#coach-error').classList.add('hidden');renderCoach();if(showNotice)notify('Conversation cleared from this tab.');}
+  function clearCoachConversation(showNotice=true){coachRequestId++;coachMessages=[];coachContext={challenge:'',attempted:[],preferred:''};coachBusy=false;coachLastPrompt='';$('#coach-input').value='';resizeCoachInput();$('#coach-error').classList.add('hidden');renderCoach();if(showNotice)notify('Conversation cleared from this tab.');}
   function transferCoachAction(index){
     const action=coachMessages[index]?.proposal?.action;if(!action)return;
     openTaskForm(null,{title:action,subject:'Study coach',steps:[action]});
@@ -253,6 +261,9 @@
     $('#saved-only').addEventListener('click',e=>{savedOnly=!savedOnly;e.currentTarget.setAttribute('aria-pressed',String(savedOnly));e.currentTarget.classList.toggle('active',savedOnly);renderResources()});
     $('#clear-resource-search').addEventListener('click',()=>{resourceSearch='';resourceCategory='all';resourceFormat='all';resourceTime='all';savedOnly=false;clearTimeout(resourceSearchTimer);$('#resource-search').value='';$('#resource-category').value='all';$('#resource-format').value='all';$('#resource-time').value='all';$('#saved-only').setAttribute('aria-pressed','false');$('#saved-only').classList.remove('active');renderResources()});
     $('#coach-form').addEventListener('submit',e=>{e.preventDefault();sendCoachMessage($('#coach-input').value)});
+    $('#coach-input').addEventListener('keydown',e=>{if(e.key!=='Enter'||e.shiftKey||e.isComposing||e.keyCode===229)return;e.preventDefault();if(e.currentTarget.value.trim())e.currentTarget.form.requestSubmit()});
+    $('#coach-input').addEventListener('input',resizeCoachInput);
+    resizeCoachInput();
     $('#enable-live-coach').addEventListener('click',()=>{pendingCoachPrompt='';$('#ai-consent-dialog').showModal()});
     $('#ai-consent-accept').addEventListener('click',()=>{coachService.enableLive?.();$('#ai-consent-dialog').close();renderCoachMode();const pending=pendingCoachPrompt;pendingCoachPrompt='';if(pending)submitCoachMessage(pending)});
     $('#ai-consent-preview').addEventListener('click',()=>{coachService.usePreview?.();$('#ai-consent-dialog').close();renderCoachMode();const pending=pendingCoachPrompt;pendingCoachPrompt='';if(pending)submitCoachMessage(pending)});

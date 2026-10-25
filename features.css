@@ -84,7 +84,7 @@
 .typing{color:#89968c;font-style:italic}
 .coach-error{margin:0 24px 12px;padding:10px 12px;border-radius:10px;background:#fff1ed;color:#985d56;font-size:10px;display:flex;align-items:center;justify-content:space-between}
 .coach-composer{display:flex;align-items:flex-end;gap:9px;padding:13px 16px;border-top:1px solid #edf0eb;background:#fff}
-.coach-composer textarea{flex:1;min-height:42px;max-height:110px;resize:vertical;border:1px solid #e3e9e1;border-radius:11px;padding:12px;color:#39473e;font:11px/1.4 "DM Sans",sans-serif;outline:0}
+.coach-composer textarea{flex:1;min-height:42px;max-height:110px;resize:none;overflow-y:hidden;border:1px solid #e3e9e1;border-radius:11px;padding:12px;color:#39473e;font:11px/1.4 "DM Sans",sans-serif;outline:0}
 .coach-composer textarea:focus{border-color:#9dbda0}
 .coach-composer textarea::placeholder{color:#a5aea7}
 .coach-composer .button-primary{height:40px;min-width:78px;font-size:10px}
