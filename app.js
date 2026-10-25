@@ -127,7 +127,7 @@
     const liveAvailable=coachService.mode==='live-available';
     const liveEnabled=coachService.mode==='live-enabled';
     $('#coach-mode-title').textContent=liveEnabled?'Live AI coach':liveAvailable?'Live AI available':'Local coach preview';
-    $('#coach-mode-copy').textContent=liveEnabled?'Your message and brief coach choices are sent to OpenAI for replies. Daylight does not save this chat; avoid identifying details.':coachService.liveAvailable?'Scripted suggestions are local. You can optionally enable live AI for this session; messages will be sent to OpenAI.':'Scripted suggestions only. Messages stay in this tab and clear when you leave or choose “Clear conversation.”';
+    $('#coach-mode-copy').textContent=liveEnabled?'Your message and brief coach choices are sent to OpenRouter, which routes them to a free AI model. Free models may log or train on messages. Daylight does not save this chat; avoid identifying details.':coachService.liveAvailable?'Scripted suggestions are local. You can optionally enable live AI for this session; messages will be sent to OpenRouter.':'Scripted suggestions only. Messages stay in this tab and clear when you leave or choose “Clear conversation.”';
     $('#enable-live-coach').classList.toggle('hidden',!coachService.liveAvailable||liveEnabled);
     $('#use-local-coach').classList.toggle('hidden',!liveEnabled);
   }
@@ -135,7 +135,7 @@
   async function requestCoachReply(text){
     const requestId=++coachRequestId;coachBusy=true;$('#coach-error').classList.add('hidden');renderCoach();
     let timeoutId;
-    try{const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Coach request timed out')),12000)});const result=await Promise.race([coachService.reply(text,coachContext),timeout]);if(requestId!==coachRequestId)return;coachMessages.push({role:'assistant',...result});coachBusy=false;renderCoach();}
+    try{const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Coach request timed out')),45000)});const result=await Promise.race([coachService.reply(text,coachContext),timeout]);if(requestId!==coachRequestId)return;coachMessages.push({role:'assistant',...result});coachBusy=false;renderCoach();}
     catch{if(requestId!==coachRequestId)return;coachBusy=false;$('#coach-error').classList.remove('hidden');renderCoach();}
     finally{clearTimeout(timeoutId)}
   }

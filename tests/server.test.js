@@ -1,12 +1,21 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildResponsesRequest, createAppServer, createRateLimiter, liveConfig, normalizeCoachOutput, validateCoachPayload } = require('../server.js');
+const { DEFAULT_ALLOWED_ORIGINS, allowedOrigins, buildChatRequest, createAppServer, createRateLimiter, liveConfig, normalizeCoachOutput, validateCoachPayload } = require('../server.js');
 
 async function serveOnce(t, options) {
   const server = createAppServer(options);
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   t.after(() => new Promise(resolve => server.close(resolve)));
   return `http://127.0.0.1:${server.address().port}`;
+}
+
+function mockResponse() {
+  const headers = {};
+  const response = { headers, status: 0, body: '' };
+  response.setHeader = (name, value) => { headers[name.toLowerCase()] = value; };
+  response.writeHead = status => { response.status = status; };
+  response.end = data => { response.body = data || ''; };
+  return response;
 }
 
 test('coach input is bounded and context is reduced to known typed fields', () => {
@@ -20,22 +29,26 @@ test('coach input is bounded and context is reduced to known typed fields', () =
   assert.ok(validateCoachPayload(null).error);
 });
 
-test('live AI is unavailable unless explicitly enabled with both server credentials and model', () => {
-  assert.equal(liveConfig({ AI_ENABLED: 'true', OPENAI_API_KEY: 'secret' }).enabled, false);
-  assert.equal(liveConfig({ AI_ENABLED: 'false', OPENAI_API_KEY: 'secret', OPENAI_MODEL: 'gpt-4.1-mini' }).enabled, false);
-  assert.equal(liveConfig({ AI_ENABLED: 'true', OPENAI_API_KEY: 'secret', OPENAI_MODEL: 'gpt-4.1-mini' }).enabled, true);
+test('live AI needs an OpenRouter key and defaults to the free model router', () => {
+  assert.equal(liveConfig({ AI_ENABLED: 'true' }).enabled, false);
+  assert.equal(liveConfig({ AI_ENABLED: 'false', OPENROUTER_API_KEY: 'secret' }).enabled, false);
+  assert.deepEqual(liveConfig({ AI_ENABLED: 'true', OPENROUTER_API_KEY: 'secret' }), { enabled: true, apiKey: 'secret', model: 'openrouter/free' });
+  assert.equal(liveConfig({ AI_ENABLED: 'true', OPENROUTER_API_KEY: 'secret', OPENROUTER_MODEL: 'google/gemma-4-31b-it:free' }).model, 'google/gemma-4-31b-it:free');
 });
 
-test('Responses API request uses one current message and disables stored response state', () => {
-  const request = buildResponsesRequest('What should I start?', { challenge: 'starting', attempted: ['tiny-start'], preferred: '' }, 'gpt-4.1-mini');
-  assert.equal(request.model, 'gpt-4.1-mini');
-  assert.equal(request.store, false);
-  assert.equal(request.input.length, 1);
-  const text = request.input[0].content[0].text;
-  assert.match(text, /What should I start/);
-  assert.match(text, /starting/);
-  assert.doesNotMatch(text, /taskList|previous messages/i);
-  assert.equal(request.text.format.type, 'json_schema');
+test('OpenRouter request sends one current message and asks for a strict JSON schema', () => {
+  const request = buildChatRequest('What should I start?', { challenge: 'starting', attempted: ['tiny-start'], preferred: '' }, 'openrouter/free');
+  assert.equal(request.model, 'openrouter/free');
+  assert.equal(request.stream, undefined);
+  assert.equal(request.messages.length, 2);
+  assert.equal(request.messages[0].role, 'system');
+  assert.match(request.messages[1].content, /What should I start/);
+  assert.match(request.messages[1].content, /starting/);
+  assert.doesNotMatch(request.messages[1].content, /taskList|previous messages/i);
+  assert.equal(request.response_format.type, 'json_schema');
+  assert.equal(request.response_format.json_schema.strict, true);
+  assert.equal(request.provider.require_parameters, true);
+  assert.deepEqual(request.plugins, [{ id: 'response-healing' }]);
 });
 
 test('coach response normalization bounds output and rejects unapproved resource ids', () => {
@@ -58,6 +71,82 @@ test('in-memory limiter allows a fixed number of requests within its time window
   assert.equal(limiter('student'), true);
 });
 
+test('browser origins default to the Pages site, custom domain, and local development', () => {
+  assert.deepEqual([...allowedOrigins({})], DEFAULT_ALLOWED_ORIGINS);
+  assert.deepEqual([...allowedOrigins({ ALLOWED_ORIGINS: 'https://example.com/, https://foo.test' })], ['https://example.com', 'https://foo.test']);
+});
+
+test('cross-origin preflight and health requests allow the frontend origin', async t => {
+  const base = await serveOnce(t, { env: {} });
+  const preflight = await fetch(`${base}/api/coach`, {
+    method: 'OPTIONS',
+    headers: {
+      origin: 'https://daylightt.me',
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type'
+    }
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://daylightt.me');
+  assert.equal(preflight.headers.get('access-control-allow-methods'), 'GET, POST, OPTIONS');
+
+  const health = await fetch(`${base}/api/health`, { headers: { origin: 'https://verityhoangjacob67.github.io' } });
+  assert.equal(health.status, 200);
+  assert.equal(health.headers.get('access-control-allow-origin'), 'https://verityhoangjacob67.github.io');
+  assert.equal((await health.json()).mode, 'preview');
+
+  const sameOrigin = await fetch(`${base}/api/health`, { headers: { origin: base } });
+  assert.equal(sameOrigin.status, 200);
+  assert.equal(sameOrigin.headers.get('access-control-allow-origin'), base);
+
+  const blocked = await fetch(`${base}/api/health`, { headers: { origin: 'https://example.com' } });
+  assert.equal(blocked.status, 403);
+  assert.equal(blocked.headers.get('access-control-allow-origin'), null);
+});
+
+test('Vercel handlers reuse the shared CORS and validation logic', async () => {
+  const health = require('../api/health.js');
+  const healthResponse = mockResponse();
+  await health({ method: 'GET', headers: { origin: 'https://daylightt.me' } }, healthResponse);
+  assert.equal(healthResponse.status, 200);
+  assert.equal(healthResponse.headers['access-control-allow-origin'], 'https://daylightt.me');
+  assert.ok(['preview', 'live'].includes(JSON.parse(healthResponse.body).mode));
+
+  const coach = require('../api/coach.js');
+  const coachResponse = mockResponse();
+  await coach({ method: 'POST', headers: { origin: 'https://daylightt.me' }, body: { message: '   ' } }, coachResponse);
+  assert.equal(coachResponse.status, 400);
+  assert.match(JSON.parse(coachResponse.body).error, /Message must be between/);
+});
+
+test('Vercel coach handler forwards a valid request to OpenRouter', async () => {
+  const previousEnv = { AI_ENABLED: process.env.AI_ENABLED, OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, OPENROUTER_MODEL: process.env.OPENROUTER_MODEL };
+  const originalFetch = global.fetch;
+  process.env.AI_ENABLED = 'true';
+  process.env.OPENROUTER_API_KEY = 'test-key';
+  process.env.OPENROUTER_MODEL = 'openrouter/free';
+  let captured;
+  global.fetch = async (url, options) => {
+    captured = { url, options };
+    return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ reply: 'Open the document.', action: '', strategy: '', detail: '', resourceId: '', choices: [] }) } }] }) };
+  };
+  try {
+    const coach = require('../api/coach.js');
+    const response = mockResponse();
+    await coach({ method: 'POST', headers: { origin: 'https://daylightt.me' }, body: { message: 'Help me begin', context: { challenge: 'starting' } } }, response);
+    assert.equal(response.status, 200);
+    assert.equal(captured.url, 'https://openrouter.ai/api/v1/chat/completions');
+    assert.equal(response.headers['access-control-allow-origin'], 'https://daylightt.me');
+    assert.deepEqual(JSON.parse(response.body), { text: 'Open the document.', choices: [] });
+  } finally {
+    global.fetch = originalFetch;
+    for (const [key, value] of Object.entries(previousEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 test('HTTP server serves app shell and reports preview mode without a configured key', async t => {
   const base = await serveOnce(t, { env: {} });
   const [page, health] = await Promise.all([fetch(base), fetch(`${base}/api/health`)]);
@@ -65,10 +154,13 @@ test('HTTP server serves app shell and reports preview mode without a configured
   assert.match(await page.text(), /Daylight/);
   const csp = page.headers.get('content-security-policy');
   assert.match(csp, /script-src 'self' https:\/\/www\.gstatic\.com/);
-  assert.match(csp, /connect-src 'self' https:\/\/\*\.googleapis\.com https:\/\/\*\.firebaseapp\.com/);
+  assert.match(csp, /connect-src 'self' https:\/\/\*\.googleapis\.com https:\/\/\*\.firebaseapp\.com https:\/\/\*\.vercel\.app/);
   assert.match(csp, /frame-src 'self' https:\/\/\*\.firebaseapp\.com/);
   assert.deepEqual(await health.json(), { mode: 'preview' });
   assert.equal((await fetch(`${base}/server.js`)).status, 404);
+  const apiConfig = await fetch(`${base}/api-config.js`);
+  assert.equal(apiConfig.status, 200);
+  assert.match(await apiConfig.text(), /DAYLIGHT_API_BASE/);
   const adapt = await fetch(`${base}/adapt.css`);
   assert.equal(adapt.status, 200);
   assert.match(adapt.headers.get('content-type'), /text\/css/);
@@ -77,10 +169,10 @@ test('HTTP server serves app shell and reports preview mode without a configured
 test('live coach endpoint forwards one validated request and returns normalized output', async t => {
   let captured;
   const base = await serveOnce(t, {
-    env: { AI_ENABLED: 'true', OPENAI_API_KEY: 'server-secret', OPENAI_MODEL: 'gpt-4.1-mini' },
+    env: { AI_ENABLED: 'true', OPENROUTER_API_KEY: 'server-secret' },
     fetchImpl: async (url, options) => {
       captured = { url, options };
-      return { ok: true, json: async () => ({ output_text: JSON.stringify({ reply: 'Open the document.', action: 'Open the document.', strategy: 'tiny-start', detail: 'Only that first step.', resourceId: 'cdc-classroom', choices: [] }) }) };
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ reply: 'Open the document.', action: 'Open the document.', strategy: 'tiny-start', detail: 'Only that first step.', resourceId: 'cdc-classroom', choices: [] }) } }] }) };
     }
   });
   const response = await fetch(`${base}/api/coach`, {
@@ -88,8 +180,8 @@ test('live coach endpoint forwards one validated request and returns normalized 
     body: JSON.stringify({ message: 'Help me begin', context: { challenge: 'starting', attempted: [], preferred: '' } })
   });
   assert.equal(response.status, 200);
-  assert.equal(captured.url, 'https://api.openai.com/v1/responses');
+  assert.equal(captured.url, 'https://openrouter.ai/api/v1/chat/completions');
   assert.match(captured.options.headers.authorization, /server-secret/);
-  assert.equal(JSON.parse(captured.options.body).store, false);
+  assert.equal(JSON.parse(captured.options.body).model, 'openrouter/free');
   assert.deepEqual(await response.json(), { text: 'Open the document.', proposal: { action: 'Open the document.', strategy: 'tiny-start', detail: 'Only that first step.', resourceId: 'cdc-classroom' }, choices: [] });
 });
