@@ -1,0 +1,20 @@
+/* Keep independent, repeatable surfaces from invalidating the whole page. */
+.resource-card,
+.task-card,
+.priority-row,
+.overview-card,
+.setting-group {
+  contain: layout paint;
+}
+
+.resource-card,
+.task-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 240px;
+}
+
+.coach-messages,
+.task-list,
+.resource-grid {
+  contain: layout style;
+}

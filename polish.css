@@ -1,0 +1,160 @@
+/* Final cross-state details: focus, disabled, dialog, and browser surfaces. */
+
+/* Sidebar tabs can be dragged into a personal order. */
+@media (pointer: fine) {
+  .nav-list .nav-item {
+    cursor: grab;
+  }
+}
+
+@media (pointer: coarse) {
+  .nav-list .nav-item {
+    touch-action: none;
+  }
+}
+
+.nav-item.dragging {
+  position: relative;
+  z-index: 1;
+  background: #eaf4ec;
+  opacity: .85;
+  cursor: grabbing;
+  box-shadow: 0 10px 24px rgba(39, 66, 54, .18);
+}
+
+body.dark-mode .nav-item.dragging {
+  background: #294638;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+}
+::selection {
+  background: #cde9d8;
+  color: #232c2c;
+}
+
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+button:disabled:hover,
+button[aria-disabled="true"]:hover {
+  transform: none;
+  background: inherit;
+}
+
+.close-dialog:focus-visible,
+.small-action:focus-visible,
+.button-quiet:focus-visible,
+.button-secondary:focus-visible,
+.timer-preset:focus-visible {
+  outline: 3px solid #6cae8d;
+  outline-offset: 3px;
+}
+
+.app-dialog {
+  scrollbar-color: #b6c9bb transparent;
+  scrollbar-width: thin;
+}
+
+.toast {
+  max-width: min(420px, calc(100vw - 32px));
+  text-align: center;
+}
+
+.reentry-note {
+  display: block;
+  max-width: 420px;
+  margin: 12px auto 0;
+  text-align: left;
+}
+
+.reentry-note > span {
+  display: block;
+  color: #64756a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.reentry-note textarea {
+  width: 100%;
+  min-height: 58px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.reentry-note > small {
+  display: block;
+  margin-top: 5px;
+  color: #89958d;
+  font-size: 9px;
+}
+
+body.dark-mode {
+  scrollbar-color: #53675b #171d1b;
+}
+
+body.dark-mode ::selection {
+  background: #47765a;
+  color: #f3faf4;
+}
+
+body.dark-mode .close-dialog,
+body.dark-mode .button-quiet,
+body.dark-mode .small-action {
+  background: #2a352f;
+  color: #c5d5ca;
+}
+
+body.dark-mode .note-card {
+  background: #26372e;
+  border-color: #35483c;
+  color: #e7eee9;
+}
+
+body.dark-mode .note-card .note-star {
+  color: #a6d7b8;
+}
+
+body.dark-mode .note-card > p:last-child {
+  color: #b2c0b8;
+}
+
+body.dark-mode .sort-control {
+  color: #b2c0b8;
+}
+
+body.dark-mode .sort-control select {
+  background: #202824;
+  border-color: var(--line);
+  color: #e7eee9;
+  color-scheme: dark;
+}
+
+body.dark-mode .reentry-note > span {
+  color: #c5d5ca;
+}
+
+body.dark-mode .reentry-note > small {
+  color: #b2c0b8;
+}
+
+body.dark-mode .close-dialog:hover,
+body.dark-mode .button-quiet:hover,
+body.dark-mode .small-action:hover {
+  background: #35463c;
+  color: #e7eee9;
+}
+
+body.dark-mode .app-dialog::backdrop {
+  background: rgba(5, 10, 8, .66);
+}
+
+@media (max-width: 520px) {
+  .toast {
+    bottom: 86px;
+  }
+}
