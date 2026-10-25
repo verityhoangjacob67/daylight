@@ -51,6 +51,31 @@ body.dark-mode .small-action {
   color: #c5d5ca;
 }
 
+body.dark-mode .note-card {
+  background: #26372e;
+  border-color: #35483c;
+  color: #e7eee9;
+}
+
+body.dark-mode .note-card .note-star {
+  color: #a6d7b8;
+}
+
+body.dark-mode .note-card > p:last-child {
+  color: #b2c0b8;
+}
+
+body.dark-mode .sort-control {
+  color: #b2c0b8;
+}
+
+body.dark-mode .sort-control select {
+  background: #202824;
+  border-color: var(--line);
+  color: #e7eee9;
+  color-scheme: dark;
+}
+
 body.dark-mode .close-dialog:hover,
 body.dark-mode .button-quiet:hover,
 body.dark-mode .small-action:hover {
