@@ -1,19 +1,59 @@
 /* Touch adaptation: preserve the desktop information architecture while enlarging
    controls and preventing narrow layouts from becoming cramped. */
 @media (pointer: coarse) {
-  button,
-  select,
-  input[type="checkbox"] + .switch-track,
-  .resource-open,
+  .button-primary,
+  .button-secondary,
+  .button-quiet,
+  .small-action,
   .text-button,
   .subtle-button,
-  .back-button {
+  .back-button,
+  .add-step-button,
+  .saved-filter,
+  .timer-preset,
+  .clear-chat,
+  .resource-open,
+  .filter-tab,
+  .nav-item,
+  .mobile-nav-item,
+  .close-dialog,
+  .priority-open,
+  .more-btn,
+  input[type="checkbox"] + .switch-track,
+  select {
     min-height: 44px;
   }
 
   .icon-button {
     min-width: 44px;
     min-height: 44px;
+  }
+
+  /* Keep square check controls square; enlarging their height alone distorts them. */
+  .check-button {
+    width: 26px;
+    height: 26px;
+    flex-basis: 26px;
+  }
+
+  .mini-check {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+  }
+
+  .step-check {
+    width: 34px;
+    height: 34px;
+  }
+
+  .save-resource {
+    width: 36px;
+    height: 36px;
+  }
+
+  .task-step {
+    min-height: 30px;
   }
 
   .switch {
@@ -137,24 +177,44 @@
   }
 
   .priority-row {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "check copy open" "check due open";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 6px;
+  }
+
+  .priority-row .check-button {
+    grid-area: check;
+    align-self: start;
+    margin-top: 2px;
   }
 
   .priority-copy {
-    flex: 1 1 calc(100% - 76px);
+    grid-area: copy;
+  }
+
+  .priority-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .priority-due {
-    margin-left: 33px;
+    grid-area: due;
+    justify-self: start;
+    margin: 0;
   }
 
   .priority-open {
-    margin-left: auto;
+    grid-area: open;
+    align-self: center;
+    margin: 0;
   }
 
   .resource-filters {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .resource-summary {
@@ -181,7 +241,17 @@
 
 @media (max-width: 360px) {
   .mobile-nav-item {
-    font-size: 8px;
+    font-size: 9px;
+  }
+
+  .task-card-footer {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .task-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .mobile-nav-item span {
