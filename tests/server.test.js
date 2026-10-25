@@ -69,9 +69,12 @@ test('HTTP server serves app shell and reports preview mode without a configured
   assert.match(csp, /frame-src 'self' https:\/\/\*\.firebaseapp\.com/);
   assert.deepEqual(await health.json(), { mode: 'preview' });
   assert.equal((await fetch(`${base}/server.js`)).status, 404);
-  const adapt = await fetch(`${base}/adapt.css`);
-  assert.equal(adapt.status, 200);
-  assert.match(adapt.headers.get('content-type'), /text\/css/);
+  const styles = await fetch(`${base}/styles.css`);
+  assert.equal(styles.status, 200);
+  assert.match(styles.headers.get('content-type'), /text\/css/);
+  const css = await styles.text();
+  for (const selector of ['.resource-card', 'body.dark-mode', '.empty-illustration', '.auth-dialog']) assert.ok(css.includes(selector), selector);
+  assert.equal((await fetch(`${base}/adapt.css`)).status, 404);
 });
 
 test('live coach endpoint forwards one validated request and returns normalized output', async t => {
