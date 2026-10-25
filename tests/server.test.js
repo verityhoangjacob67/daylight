@@ -65,6 +65,9 @@ test('HTTP server serves app shell and reports preview mode without a configured
   assert.match(await page.text(), /Daylight/);
   assert.deepEqual(await health.json(), { mode: 'preview' });
   assert.equal((await fetch(`${base}/server.js`)).status, 404);
+  const adapt = await fetch(`${base}/adapt.css`);
+  assert.equal(adapt.status, 200);
+  assert.match(adapt.headers.get('content-type'), /text\/css/);
 });
 
 test('live coach endpoint forwards one validated request and returns normalized output', async t => {
