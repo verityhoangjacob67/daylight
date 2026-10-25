@@ -159,6 +159,61 @@
   }
   function renderWeek(){const counts=Array(7).fill(0);const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const monday=new Date(today.getTime()-mondayOffset*day);for(const event of state.events){const stamp=new Date(event.at);stamp.setHours(0,0,0,0);const i=Math.floor((stamp-monday)/day);if(i>=0&&i<7)counts[i]++}const max=Math.max(2,...counts);const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];$('#week-bars').innerHTML=names.map((n,i)=>`<div class="week-day ${i===mondayOffset?'today':''}"><div class="bar-track"><div class="bar-fill" style="height:${Math.max(8,counts[i]/max*100)}%"></div></div><span>${n}</span></div>`).join('')}
   function refresh(){renderHome();renderTasks();renderWeek();save()}
+  const NAV_VIEWS=['today','tasks','coach','resources','progress'];
+  function navOrder(){const saved=Array.isArray(state.settings.navOrder)?state.settings.navOrder.filter(v=>NAV_VIEWS.includes(v)):[];return saved.concat(NAV_VIEWS.filter(v=>!saved.includes(v)))}
+  function applyNavOrder(){
+    const order=navOrder();
+    $$('.nav-list,.mobile-nav').forEach(list=>{
+      [...list.querySelectorAll('[data-view]')]
+        .sort((a,b)=>{const i=order.indexOf(a.dataset.view),j=order.indexOf(b.dataset.view);return (i<0?99:i)-(j<0?99:j)})
+        .forEach(el=>list.append(el));
+    });
+  }
+  function enableNavReorder(){
+    const list=$('.nav-list');if(!list)return;
+    let dragEl=null,startY=0,moved=false,before='',suppressUntil=0;
+    const orderNow=()=>[...list.querySelectorAll('[data-view]')].map(b=>b.dataset.view);
+    const place=y=>{
+      const next=[...list.querySelectorAll('.nav-item[data-view]')].filter(x=>x!==dragEl)
+        .find(x=>{const r=x.getBoundingClientRect();return y<r.top+r.height/2});
+      if(next)list.insertBefore(dragEl,next);else list.append(dragEl);
+    };
+    const endDrag=()=>{
+      if(!dragEl)return;
+      const after=orderNow().join();
+      dragEl.classList.remove('dragging');list.classList.remove('reordering');
+      const changed=moved&&after!==before;
+      dragEl=null;moved=false;
+      if(!changed)return;
+      suppressUntil=Date.now()+300;
+      state.settings.navOrder=after.split(',');save();applyNavOrder();notify('Tab order saved.');
+    };
+    list.addEventListener('click',e=>{if(Date.now()<suppressUntil){e.stopImmediatePropagation();e.preventDefault()}},true);
+    list.addEventListener('pointerdown',e=>{
+      const item=e.target.closest('.nav-item[data-view]');if(!item||(e.button??0)>0)return;
+      dragEl=item;startY=e.clientY;moved=false;before=orderNow().join();
+      try{item.setPointerCapture(e.pointerId)}catch{}
+    });
+    document.addEventListener('pointermove',e=>{
+      if(!dragEl)return;
+      if(!moved&&Math.abs(e.clientY-startY)<6)return;
+      if(!moved){moved=true;dragEl.classList.add('dragging');list.classList.add('reordering')}
+      place(e.clientY);
+    });
+    document.addEventListener('pointerup',endDrag);
+    document.addEventListener('pointercancel',endDrag);
+    list.addEventListener('keydown',e=>{
+      if(!e.altKey||(e.key!=='ArrowUp'&&e.key!=='ArrowDown'))return;
+      const item=e.target.closest('.nav-item[data-view]');if(!item)return;
+      const items=[...list.querySelectorAll('[data-view]')],i=items.indexOf(item),j=e.key==='ArrowUp'?i-1:i+1;
+      if(j<0||j>=items.length)return;
+      e.preventDefault();
+      if(e.key==='ArrowUp')list.insertBefore(item,items[j]);else list.insertBefore(items[j],item);
+      state.settings.navOrder=orderNow();save();applyNavOrder();item.focus();
+      notify('Tab moved. Alt + arrow keys reorder the rest.');
+    });
+  }
+
   function openTaskForm(task=null){const d=$('#task-dialog');$('#task-form').dataset.edit=task?.id||'';$('#dialog-title').textContent=task?'Edit task':'Add a task';$('#task-name').value=task?.title||'';$('#task-subject').value=task?.subject||'';$('#task-due').value=task?.due||'';renderStepInputs(task?.steps||[]);d.showModal();setTimeout(()=>$('#task-name').focus(),50)}
   function renderStepInputs(steps){const values=steps.length?steps:[''];$('#step-inputs').innerHTML=values.map((s,i)=>`<div class="step-field"><span class="step-bullet">${i+1}</span><input class="text-input" aria-label="Step ${i+1}" value="${esc(s)}" placeholder="A small, concrete step" maxlength="100"><button type="button" class="remove-step" aria-label="Remove step ${i+1}">×</button></div>`).join('');}
   function suggestSteps(){const title=$('#task-name').value.trim();const low=title.toLowerCase();let steps=['Open the assignment or materials','Look over what needs to be done','Work on one small part','Check what you’ve finished'];if(/lab|report|essay|paper|project/.test(low))steps=['Open the assignment document','Review your notes or results','Write one rough paragraph','Read it over once'];else if(/read|chapter|book/.test(low))steps=['Find your place','Read for ten minutes','Write down one thing you noticed'];else if(/problem|math|practice|worksheet/.test(low))steps=['Open the problem set','Try the first two questions','Check one answer'];renderStepInputs(steps);notify('Step ideas added. Change anything that doesn’t fit.');}
@@ -170,6 +225,7 @@
   function toggleStep(id,index){const t=state.tasks.find(x=>x.id===id);if(!t)return;t.done[index]=!t.done[index];if(t.done[index])state.events.push({at:new Date().toISOString(),type:'step'});refresh();notify(t.done[index]?'Step complete. That counts.':'Step reopened. You can take it from here.');}
   function reschedule(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;const answer=prompt(`Choose a new due date for “${t.title}” (YYYY-MM-DD). Leave blank to clear the date.`,t.due||'');if(answer===null)return;if(answer&&!/^\d{4}-\d{2}-\d{2}$/.test(answer)){notify('Use a date like 2026-10-20.');return}t.due=answer||'';refresh();notify('Date updated. You can change it again any time.');}
   function bind(){
+    enableNavReorder();
     $$('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
     $$('[data-go="tasks"]').forEach(b=>b.addEventListener('click',()=>showView('tasks')));
     $('#add-task').addEventListener('click',()=>openTaskForm());$('#quick-add').addEventListener('click',()=>openTaskForm());$('#capture-button').addEventListener('click',()=>openTaskForm());$('#empty-add').addEventListener('click',()=>openTaskForm());
@@ -221,5 +277,5 @@
   function updateSyncStatus(status){const signedIn=Boolean(window.DAYLIGHT_AUTH?.currentUser);const label=status==='pending'?'Syncing…':status==='error'?'Sync paused · Try again later':signedIn?'Signed in · Synced':'Signed out · This browser only';$('#account-setting-status').textContent=label;if(status==='error')notify('Your local changes are safe, but cloud sync needs attention.')}
   async function handleAuthState(event){const user=event.detail.user;updateAccount(user);if(!user){updateSyncStatus('signed-out');return}const revisionAtLoad=stateRevision;updateSyncStatus('pending');try{const remote=await window.DAYLIGHT_AUTH.loadState(user);if(revisionAtLoad!==stateRevision){window.DAYLIGHT_AUTH.queueSync(state);updateSyncStatus('pending');return}if(remote&&Array.isArray(remote.tasks)){state={...state,...remote,settings:{...initial.settings,...(remote.settings||{})}};applySettings();refresh();notify('Your synced space is ready.')}else{save();notify('Signed in. Your local space will sync here.')}}catch(error){console.error('Daylight account sync failed',error);updateSyncStatus('error');notify('Signed in, but cloud sync is unavailable right now.')}}
   function setDate(){const now=new Date();$('#header-date').textContent=now.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}).toUpperCase();$('#date-day').textContent=now.getDate();$('#date-month').innerHTML=now.toLocaleDateString(undefined,{month:'short'}).toUpperCase()+'<br />'+now.toLocaleDateString(undefined,{weekday:'short'}).toUpperCase();const mondayOffset=(now.getDay()+6)%7;const monday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-mondayOffset);const sunday=new Date(monday.getFullYear(),monday.getMonth(),monday.getDate()+6);$('#week-range').textContent=`${monday.toLocaleDateString(undefined,{month:'short',day:'numeric'})}–${sunday.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`.toUpperCase();const h=now.getHours();$('#greeting').textContent=h<12?'A FRESH START':h<17?'A LITTLE SPACE TO FOCUS':'A GENTLE END TO THE DAY'}
-  initResourceFilters();bind();applySettings();setDate();refresh();renderResources();renderCoach();renderCoachMode();initializeCoachMode();
+  initResourceFilters();bind();applyNavOrder();applySettings();setDate();refresh();renderResources();renderCoach();renderCoachMode();initializeCoachMode();
 })();
