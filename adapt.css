@@ -19,9 +19,18 @@
   .close-dialog,
   .priority-open,
   .more-btn,
-  input[type="checkbox"] + .switch-track,
   select {
     min-height: 44px;
+  }
+
+  .switch {
+    width: 44px;
+    height: 44px;
+  }
+
+  .switch-track {
+    inset: 11px 3px;
+    min-height: 0;
   }
 
   .icon-button {

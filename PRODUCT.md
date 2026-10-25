@@ -26,9 +26,10 @@ Students use Daylight in a browser while organizing assignments, choosing a next
 
 - Create, edit, reschedule, filter, sort, and complete school tasks and their smaller steps.
 - Start optional focus sessions with configurable durations and break reminders.
+- Remember the current unfinished step for each task, with an optional note to make returning easier.
 - Browse, filter, search, and save curated educational resources.
 - Review lightweight progress without streak pressure.
-- Use a scripted local study coach, with an optional live AI coach enabled only after explicit session consent.
+- Use a scripted local study coach to name common barriers and offer an editable next action, with an optional live AI coach enabled only after explicit session consent.
 - Tasks, preferences, and saved resources remain in browser local storage.
 - Coach chat is session-only. Live coach requests send only the current message and a small set of typed coaching preferences; the app does not send assignment lists or previous chat history.
 - The app has no sign-in, database, account sync, or production deployment configuration.

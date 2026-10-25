@@ -35,6 +35,37 @@ button[aria-disabled="true"]:hover {
   text-align: center;
 }
 
+.reentry-note {
+  display: block;
+  max-width: 420px;
+  margin: 12px auto 0;
+  text-align: left;
+}
+
+.reentry-note > span {
+  display: block;
+  color: #64756a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.reentry-note textarea {
+  width: 100%;
+  min-height: 58px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.reentry-note > small {
+  display: block;
+  margin-top: 5px;
+  color: #89958d;
+  font-size: 9px;
+}
+
 body.dark-mode {
   scrollbar-color: #53675b #171d1b;
 }
@@ -74,6 +105,14 @@ body.dark-mode .sort-control select {
   border-color: var(--line);
   color: #e7eee9;
   color-scheme: dark;
+}
+
+body.dark-mode .reentry-note > span {
+  color: #c5d5ca;
+}
+
+body.dark-mode .reentry-note > small {
+  color: #b2c0b8;
 }
 
 body.dark-mode .close-dialog:hover,
