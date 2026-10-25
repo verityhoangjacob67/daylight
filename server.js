@@ -147,7 +147,7 @@ function createAppServer({ env = process.env, fetchImpl = fetch, now = Date.now 
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'strict-origin-when-cross-origin');
     res.setHeader('x-frame-options', 'DENY');
-    res.setHeader('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    res.setHeader('content-security-policy', "default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
     let pathname;
     try { pathname = new URL(req.url, 'http://localhost').pathname; } catch { return sendJson(res, 400, { error: 'Invalid request.' }); }
     if (req.method === 'GET' && pathname === '/api/health') return sendJson(res, 200, { mode: liveConfig(env).enabled ? 'live' : 'preview' });

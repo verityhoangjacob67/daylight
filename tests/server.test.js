@@ -63,6 +63,10 @@ test('HTTP server serves app shell and reports preview mode without a configured
   const [page, health] = await Promise.all([fetch(base), fetch(`${base}/api/health`)]);
   assert.equal(page.status, 200);
   assert.match(await page.text(), /Daylight/);
+  const csp = page.headers.get('content-security-policy');
+  assert.match(csp, /script-src 'self' https:\/\/www\.gstatic\.com/);
+  assert.match(csp, /connect-src 'self' https:\/\/\*\.googleapis\.com https:\/\/\*\.firebaseapp\.com/);
+  assert.match(csp, /frame-src 'self' https:\/\/\*\.firebaseapp\.com/);
   assert.deepEqual(await health.json(), { mode: 'preview' });
   assert.equal((await fetch(`${base}/server.js`)).status, 404);
   const adapt = await fetch(`${base}/adapt.css`);
