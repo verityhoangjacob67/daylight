@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { DEFAULT_ALLOWED_ORIGINS, allowedOrigins, buildChatRequest, createAppServer, createRateLimiter, liveConfig, normalizeCoachOutput, validateCoachPayload } = require('../server.js');
+const { DEFAULT_ALLOWED_ORIGINS, allowedOrigins, buildBreakdownRequest, buildChatRequest, createAppServer, createRateLimiter, liveConfig, normalizeCoachOutput, validateCoachPayload } = require('../server.js');
 
 async function serveOnce(t, options) {
   const server = createAppServer(options);
@@ -48,7 +48,16 @@ test('OpenRouter request sends one current message and asks for a strict JSON sc
   assert.equal(request.response_format.type, 'json_schema');
   assert.equal(request.response_format.json_schema.strict, true);
   assert.equal(request.provider.require_parameters, true);
+  assert.deepEqual(request.reasoning, { enabled: false });
   assert.deepEqual(request.plugins, [{ id: 'response-healing' }]);
+});
+
+test('assignment requests disable reasoning and still ask OpenRouter to parse the PDF', () => {
+  const request = buildBreakdownRequest({ filename: 'essay.pdf', fileData: 'JVBERi0xLjQK' }, 'openrouter/free');
+  assert.deepEqual(request.reasoning, { enabled: false });
+  assert.deepEqual(request.plugins, [{ id: 'file-parser', pdf: { engine: 'cloudflare-ai' } }, { id: 'response-healing' }]);
+  assert.equal(request.provider.require_parameters, true);
+  assert.match(request.messages[1].content[0].file.file_data, /^data:application\/pdf;base64,/);
 });
 
 test('coach response normalization bounds output and rejects unapproved resource ids', () => {
@@ -184,4 +193,67 @@ test('live coach endpoint forwards one validated request and returns normalized 
   assert.match(captured.options.headers.authorization, /server-secret/);
   assert.equal(JSON.parse(captured.options.body).model, 'openrouter/free');
   assert.deepEqual(await response.json(), { text: 'Open the document.', proposal: { action: 'Open the document.', strategy: 'tiny-start', detail: 'Only that first step.', resourceId: 'cdc-classroom' }, choices: [] });
+});
+
+function liveEnv() {
+  return { AI_ENABLED: 'true', OPENROUTER_API_KEY: 'server-secret' };
+}
+
+function coachBody(content) {
+  return { ok: true, json: async () => ({ choices: [{ message: { content } }] }) };
+}
+
+const coachReplyJson = JSON.stringify({ reply: 'Open the document.', action: '', strategy: '', detail: '', resourceId: '', choices: [] });
+
+test('a failed free route is retried once and the second attempt answers', async t => {
+  let calls = 0;
+  const base = await serveOnce(t, {
+    env: liveEnv(),
+    fetchImpl: async () => {
+      calls++;
+      if (calls === 1) return { ok: false, status: 503, text: async () => '{"error":{"message":"No endpoints available"}}' };
+      return coachBody(coachReplyJson);
+    }
+  });
+  const response = await fetch(`${base}/api/coach`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message: 'Help me begin', context: { challenge: 'starting' } })
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).text, 'Open the document.');
+  assert.equal(calls, 2);
+});
+
+test('unusable model output is retried instead of failing the student', async t => {
+  let calls = 0;
+  const base = await serveOnce(t, {
+    env: liveEnv(),
+    fetchImpl: async () => {
+      calls++;
+      const content = calls === 1 ? 'Here are some steps, in plain prose.' : JSON.stringify({ title: 'Lab report', subject: 'Chemistry', steps: ['Open the lab document'] });
+      return coachBody(content);
+    }
+  });
+  const response = await fetch(`${base}/api/assignment-breakdown`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ filename: 'lab.pdf', fileData: 'JVBERi0xLjQK' })
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { title: 'Lab report', subject: 'Chemistry', steps: ['Open the lab document'] });
+  assert.equal(calls, 2);
+});
+
+test('a key or account failure is reported with its status and not retried', async t => {
+  let calls = 0;
+  const base = await serveOnce(t, {
+    env: liveEnv(),
+    fetchImpl: async () => { calls++; return { ok: false, status: 401, text: async () => '{"error":{"message":"Missing Authentication header"}}' }; }
+  });
+  const response = await fetch(`${base}/api/coach`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ message: 'Help me begin', context: { challenge: 'starting' } })
+  });
+  assert.equal(response.status, 502);
+  assert.equal((await response.json()).upstreamStatus, 401);
+  assert.equal(calls, 1);
 });
