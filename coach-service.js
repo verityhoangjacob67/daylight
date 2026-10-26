@@ -85,9 +85,23 @@ function createDaylightCoachService({ delayMs = 380, fetchImpl = (...args) => fe
     return previewReply(text, context);
   }
 
+  async function breakdown(file) {
+    if (!liveAvailable) throw new Error('Live AI is not available right now. You can add the task manually instead.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+    const response = await fetchImpl(`${apiBase}/assignment-breakdown`, {
+      method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ filename: file.name, fileData: btoa(binary) })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'We couldn’t read that assignment. Try again.');
+    return result;
+  }
+
   function enableLive() { if (liveAvailable) { liveConsent = true; mode = 'live-enabled'; } }
   function usePreview() { liveConsent = false; mode = 'preview'; }
-  return { reply, checkStatus, enableLive, usePreview, get mode() { return mode; }, get liveAvailable() { return liveAvailable; } };
+  return { reply, breakdown, checkStatus, enableLive, usePreview, get mode() { return mode; }, get liveAvailable() { return liveAvailable; } };
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { createCoachService:createDaylightCoachService };

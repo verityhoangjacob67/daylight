@@ -1160,6 +1160,34 @@ body.dark-mode {
   }
 }
 
+.assignment-upload-card{max-width:790px;margin:16px 0 28px;padding:18px 20px;border:1px solid #e6ebe3;border-radius:15px;background:#f7f9f5;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:center}
+.assignment-upload-card h2{margin:4px 0 5px;font:700 17px/1.3 Manrope,sans-serif;color:#405448}
+.assignment-upload-card p:not(.eyebrow){margin:0;color:#738078;font-size:11px;line-height:1.5}
+.assignment-upload-card .eyebrow{margin:0;color:#829484}
+.assignment-upload-card .button-secondary{grid-column:2;grid-row:1/3;white-space:nowrap}
+.assignment-upload-status{grid-column:1/-1;margin-top:6px!important;font-size:10px!important;color:#748078!important}
+.assignment-upload-status.is-error{color:#a55c52!important}
+.assignment-review-dialog{width:min(560px,calc(100vw - 28px));max-height:min(88vh,820px);overflow:auto}
+.assignment-review-hint{margin:0 0 16px;color:#768279;font-size:11px;line-height:1.55}
+.assignment-review-dialog .field-label{display:block;margin:12px 0 6px}
+.assignment-review-steps{display:grid;gap:8px;margin-top:10px}
+.assignment-review-step{display:grid;grid-template-columns:25px minmax(0,1fr) 30px;gap:7px;align-items:center}
+.assignment-review-step>span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#edf3eb;color:#69816e;font-size:10px;font-weight:700}
+.assignment-review-step .text-input{min-width:0}
+.assignment-review-step .remove-step{width:28px;height:30px;border:0;border-radius:8px;background:transparent;color:#879187;font-size:19px}
+.assignment-review-step .remove-step:hover{background:#f1efeb;color:#805d55}
+.assignment-review-dialog .dialog-actions{position:sticky;bottom:-20px;padding:12px 0 0;background:var(--dialog-bg,#fff)}
+body.dark-mode .assignment-upload-card{background:#202a25;border-color:#35443b}
+body.dark-mode .assignment-upload-card h2{color:#d7e4d9}
+body.dark-mode .assignment-upload-card p:not(.eyebrow),body.dark-mode .assignment-review-hint{color:#acb9ae}
+body.dark-mode .assignment-upload-card .eyebrow{color:#9aad9d}
+body.dark-mode .assignment-upload-status{color:#aab7ac!important}
+body.dark-mode .assignment-upload-status.is-error{color:#e1a39b!important}
+body.dark-mode .assignment-review-step>span{background:#304036;color:#c3d5c5}
+body.dark-mode .assignment-review-step .remove-step:hover{background:#393937;color:#e6b2a7}
+body.dark-mode .assignment-review-dialog .dialog-actions{background:#202522}
+@media(max-width:520px){.assignment-upload-card{grid-template-columns:minmax(0,1fr);padding:15px}.assignment-upload-card .button-secondary{grid-column:1;grid-row:auto;justify-self:start;margin-top:7px}.assignment-upload-status{grid-column:1}}
+
 /* ===== harden.css ===== */
 .form-error {
   margin: 7px 0 0;

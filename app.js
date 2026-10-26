@@ -23,7 +23,7 @@
   const resources = Array.isArray(window.DAYLIGHT_RESOURCES) ? window.DAYLIGHT_RESOURCES : [];
   const filterResources = window.DAYLIGHT_FILTER_RESOURCES || ((items)=>items);
   let resourceSearch = '', resourceCategory = 'all', resourceFormat = 'all', resourceTime = 'all', savedOnly = false, resourceSearchTimer;
-  let coachMessages = [], coachContext = {challenge:'',attempted:[],preferred:''}, coachBusy = false, coachLastPrompt = '', coachRequestId = 0, pendingCoachPrompt = '';
+  let coachMessages = [], coachContext = {challenge:'',attempted:[],preferred:''}, coachBusy = false, coachLastPrompt = '', coachRequestId = 0, pendingCoachPrompt = '', pendingAssignmentFile = null, assignmentBusy = false;
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const save = () => { stateRevision++; try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} window.DAYLIGHT_AUTH?.queueSync?.(state); };
@@ -130,6 +130,8 @@
     $('#coach-mode-copy').textContent=liveEnabled?'Your message and brief coach choices are sent to OpenAI for replies. Daylight does not save this chat; avoid identifying details.':coachService.liveAvailable?'Scripted suggestions are local. You can optionally enable live AI for this session; messages will be sent to OpenAI.':'Scripted suggestions only. Messages stay in this tab and clear when you leave or choose “Clear conversation.”';
     $('#enable-live-coach').classList.toggle('hidden',!coachService.liveAvailable||liveEnabled);
     $('#use-local-coach').classList.toggle('hidden',!liveEnabled);
+    $('#choose-assignment-pdf').disabled=!coachService.liveAvailable||assignmentBusy;
+    if(!coachService.liveAvailable)setAssignmentStatus('PDF breakdown needs a configured live AI service. You can still add a task manually.');
   }
   async function initializeCoachMode(){if(coachService.checkStatus)await coachService.checkStatus();renderCoachMode()}
   async function requestCoachReply(text){
@@ -160,6 +162,37 @@
   function transferCoachAction(index){
     const action=coachMessages[index]?.proposal?.action;if(!action)return;
     openTaskForm(null,{title:action,subject:'Study coach',steps:[action]});
+  }
+  function setAssignmentStatus(message,isError=false){const status=$('#assignment-upload-status');status.textContent=message;status.classList.toggle('is-error',isError)}
+  function chooseAssignmentFile(file){
+    if(!file)return;
+    if(!/\.pdf$/i.test(file.name)||file.type&&file.type!=='application/pdf'){setAssignmentStatus('Choose a PDF file to continue.',true);return}
+    if(file.size>8*1024*1024){setAssignmentStatus('This PDF is over 8 MB. Choose a smaller file.',true);return}
+    if(!file.size){setAssignmentStatus('That PDF is empty. Choose another file.',true);return}
+    if(!coachService.liveAvailable){setAssignmentStatus('Live AI is not configured for this app yet. You can still add a task manually.',true);return}
+    pendingAssignmentFile=file;
+    $('#assignment-consent-file').textContent=`${file.name} · ${(file.size/1024/1024).toFixed(2)} MB`;
+    $('#assignment-consent-dialog').showModal();
+  }
+  function renderAssignmentReview(result){
+    $('#assignment-task-title').value=result.title||'Assignment task';$('#assignment-task-subject').value=result.subject||'';$('#assignment-task-due').value='';
+    const steps=result.steps?.length?result.steps:['Review the assignment directions and add your own first step.'];
+    $('#assignment-review-steps').innerHTML=steps.map((step,i)=>`<div class="assignment-review-step"><span>${i+1}</span><input class="text-input" maxlength="100" aria-label="Step ${i+1}" value="${esc(step)}" /><button type="button" class="remove-step" aria-label="Remove step ${i+1}">×</button></div>`).join('');
+    $('#assignment-review-error').classList.add('hidden');$('#assignment-review-dialog').showModal();setTimeout(()=>$('#assignment-task-title').focus(),50);
+  }
+  async function submitAssignmentFile(){
+    if(!pendingAssignmentFile||assignmentBusy)return;
+    const file=pendingAssignmentFile;assignmentBusy=true;const button=$('#assignment-consent-send');button.disabled=true;button.textContent='Reading the PDF…';setAssignmentStatus('Reading the assignment…');
+    try{const result=await coachService.breakdown(file);pendingAssignmentFile=null;$('#assignment-consent-dialog').close();if(!result.steps?.length){setAssignmentStatus('The PDF did not contain a clear assignment prompt. Try a clearer copy or add the task manually.',true);return}setAssignmentStatus('Suggestions are ready to review.');renderAssignmentReview(result)}
+    catch(error){setAssignmentStatus(error.message||'We couldn’t read that PDF. Try again.',true)}
+    finally{assignmentBusy=false;button.disabled=false;button.textContent='Send PDF for ideas'}
+  }
+  function saveAssignmentBreakdown(event){
+    event.preventDefault();const title=$('#assignment-task-title').value.trim(),steps=$$('#assignment-review-steps input').map(input=>input.value.trim()).filter(Boolean),error=$('#assignment-review-error');
+    if(!title){error.textContent='Add a task name before saving.';error.classList.remove('hidden');$('#assignment-task-title').focus();return}
+    if(!steps.length){error.textContent='Add at least one step so you have a place to begin.';error.classList.remove('hidden');$('#assignment-review-steps input')?.focus();return}
+    state.tasks.unshift({id:'task-'+Date.now(),title:title.slice(0,100),subject:$('#assignment-task-subject').value.trim().slice(0,40),due:$('#assignment-task-due').value,steps:steps.slice(0,12),done:steps.slice(0,12).map(()=>false),today:true});
+    $('#assignment-review-dialog').close();$('#assignment-pdf').value='';setAssignmentStatus('Task saved. You can change the steps any time.');refresh();showView('tasks');notify('Assignment task saved. Review the steps whenever you like.');
   }
   function renderWeek(){const counts=Array(7).fill(0);const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const monday=new Date(today.getTime()-mondayOffset*day);for(const event of state.events){const stamp=new Date(event.at);stamp.setHours(0,0,0,0);const i=Math.floor((stamp-monday)/day);if(i>=0&&i<7)counts[i]++}const max=Math.max(2,...counts);const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];$('#week-bars').innerHTML=names.map((n,i)=>`<div class="week-day ${i===mondayOffset?'today':''}"><div class="bar-track"><div class="bar-fill" style="height:${Math.max(8,counts[i]/max*100)}%"></div></div><span>${n}</span></div>`).join('')}
   function refresh(){renderHome();renderTasks();renderWeek();save()}
@@ -253,6 +286,17 @@
     $('#saved-only').addEventListener('click',e=>{savedOnly=!savedOnly;e.currentTarget.setAttribute('aria-pressed',String(savedOnly));e.currentTarget.classList.toggle('active',savedOnly);renderResources()});
     $('#clear-resource-search').addEventListener('click',()=>{resourceSearch='';resourceCategory='all';resourceFormat='all';resourceTime='all';savedOnly=false;clearTimeout(resourceSearchTimer);$('#resource-search').value='';$('#resource-category').value='all';$('#resource-format').value='all';$('#resource-time').value='all';$('#saved-only').setAttribute('aria-pressed','false');$('#saved-only').classList.remove('active');renderResources()});
     $('#coach-form').addEventListener('submit',e=>{e.preventDefault();sendCoachMessage($('#coach-input').value)});
+    $('#choose-assignment-pdf').addEventListener('click',()=>$('#assignment-pdf').click());
+    $('#assignment-pdf').addEventListener('change',e=>chooseAssignmentFile(e.target.files?.[0]));
+    $('#assignment-consent-send').addEventListener('click',submitAssignmentFile);
+    $('#assignment-consent-cancel').addEventListener('click',()=>{$('#assignment-consent-dialog').close();pendingAssignmentFile=null;$('#assignment-pdf').value=''});
+    $('#assignment-consent-close').addEventListener('click',()=>{$('#assignment-consent-dialog').close();pendingAssignmentFile=null;$('#assignment-pdf').value=''});
+    $('#assignment-consent-dialog').addEventListener('cancel',()=>{pendingAssignmentFile=null;$('#assignment-pdf').value=''});
+    $('#assignment-review-form').addEventListener('submit',saveAssignmentBreakdown);
+    $('#assignment-review-close').addEventListener('click',()=>$('#assignment-review-dialog').close());
+    $('#assignment-review-cancel').addEventListener('click',()=>$('#assignment-review-dialog').close());
+    $('#assignment-review-add-step').addEventListener('click',()=>{const container=$('#assignment-review-steps'),count=container.querySelectorAll('.assignment-review-step').length;if(count>=12){notify('Keep the breakdown to 12 steps or fewer.');return}const item=document.createElement('div');item.className='assignment-review-step';item.innerHTML=`<span>${count+1}</span><input class="text-input" maxlength="100" aria-label="Step ${count+1}" /><button type="button" class="remove-step" aria-label="Remove step ${count+1}">×</button>`;container.append(item);item.querySelector('input').focus()});
+    $('#assignment-review-steps').addEventListener('click',e=>{if(!e.target.classList.contains('remove-step'))return;const row=e.target.closest('.assignment-review-step');if(row)row.remove();[...$('#assignment-review-steps').querySelectorAll('.assignment-review-step')].forEach((item,i)=>{item.querySelector('span').textContent=i+1;item.querySelector('input').setAttribute('aria-label',`Step ${i+1}`);item.querySelector('button').setAttribute('aria-label',`Remove step ${i+1}`)})});
     $('#enable-live-coach').addEventListener('click',()=>{pendingCoachPrompt='';$('#ai-consent-dialog').showModal()});
     $('#ai-consent-accept').addEventListener('click',()=>{coachService.enableLive?.();$('#ai-consent-dialog').close();renderCoachMode();const pending=pendingCoachPrompt;pendingCoachPrompt='';if(pending)submitCoachMessage(pending)});
     $('#ai-consent-preview').addEventListener('click',()=>{coachService.usePreview?.();$('#ai-consent-dialog').close();renderCoachMode();const pending=pendingCoachPrompt;pendingCoachPrompt='';if(pending)submitCoachMessage(pending)});
