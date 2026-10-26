@@ -33,6 +33,7 @@ body.dark-mode .profile-row small,
 body.dark-mode .priority-sub,
 body.dark-mode .priority-due,
 body.dark-mode .task-card-heading p,
+body.dark-mode .task-note,
 body.dark-mode .task-progress-copy,
 body.dark-mode .resource-summary,
 body.dark-mode .resource-description,
@@ -42,8 +43,6 @@ body.dark-mode .resource-purpose p,
 body.dark-mode .resource-disclaimer,
 body.dark-mode .detail-meta small,
 body.dark-mode .coach-label,
-body.dark-mode .coach-more,
-body.dark-mode .coach-more p,
 body.dark-mode .coach-footnote,
 body.dark-mode .focus-task-label,
 body.dark-mode .focus-encouragement,
@@ -58,7 +57,6 @@ body.dark-mode .text-button,
 body.dark-mode .subtle-button,
 body.dark-mode .back-button,
 body.dark-mode .resource-open,
-body.dark-mode .coach-resource-link,
 body.dark-mode .resource-category,
 body.dark-mode .setting-row,
 body.dark-mode .profile-row b {
@@ -87,7 +85,6 @@ body.dark-mode .resource-card h2,
 body.dark-mode .resource-meta b,
 body.dark-mode .detail-meta b,
 body.dark-mode .coach-intro p,
-body.dark-mode .coach-proposal > p,
 body.dark-mode .dialog-head h2,
 body.dark-mode .field-label,
 body.dark-mode .setting-group > div:first-child h2,
@@ -113,7 +110,6 @@ body.dark-mode .capture-card,
 body.dark-mode .task-card,
 body.dark-mode .resource-card,
 body.dark-mode .coach-panel,
-body.dark-mode .coach-proposal,
 body.dark-mode .setting-group,
 body.dark-mode .focus-step,
 body.dark-mode .app-dialog,
@@ -227,8 +223,7 @@ body.dark-mode .user-bubble {
 }
 
 body.dark-mode .coach-disclosure b,
-body.dark-mode .coach-intro p,
-body.dark-mode .coach-proposal > p {
+body.dark-mode .coach-intro p {
   color: #d9e9dd;
 }
 
@@ -450,8 +445,7 @@ body.dark-mode .overview-card strong small {
   color: #b2c0b8;
 }
 
-body.dark-mode .next-copy p,
-body.dark-mode .coach-more summary {
+body.dark-mode .next-copy p {
   color: #b2c0b8;
 }
 

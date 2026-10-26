@@ -82,7 +82,7 @@
     if(sort==='name')tasks.sort((a,b)=>a.title.localeCompare(b.title));else tasks.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999'));
     $('#filter-all-count').textContent=state.tasks.length;
     $('#task-empty').classList.toggle('hidden',tasks.length!==0);list.classList.toggle('hidden',tasks.length===0);
-    list.innerHTML=tasks.map(t=>`<article class="task-card"><div class="task-card-top"><div class="task-color ${subjectClass(t.subject)}">${subjectIcon(t.subject)}</div><div class="task-card-heading"><h3>${esc(t.title)}</h3><p>${esc(t.subject||'Schoolwork')} · ${doneCount(t)} of ${t.steps.length} steps</p></div><span class="task-due ${t.due&&t.due<=dateAt(1)&&!t.done.every(Boolean)?'soon':''}">${esc(dueLabel(t.due))}</span></div><ul class="task-steps">${t.steps.map((s,i)=>`<li class="task-step ${t.done[i]?'done':''}"><button class="mini-check ${t.done[i]?'checked':''}" data-step-task="${t.id}" data-step-index="${i}" aria-label="${t.done[i]?'Reopen':'Complete'} step: ${esc(s)}">✓</button><span>${esc(s)}</span></li>`).join('')}</ul><div class="task-card-footer"><span class="task-progress-copy">${t.done.every(Boolean)?'Finished · nicely done':'Step '+(doneCount(t)+1)+' of '+t.steps.length}</span><div class="task-progress-track" aria-label="Task progress"><span style="width:${Math.round(doneCount(t)/t.steps.length*100)}%"></span></div><div class="task-actions"><button class="small-action" data-focus-task="${t.id}">${t.done.every(Boolean)?'Review':'Start a step'}</button><button class="small-action" data-reschedule="${t.id}">${t.due?'Move date':'Add date'}</button></div></div></article>`).join('');
+    list.innerHTML=tasks.map(t=>`<article class="task-card"><div class="task-card-top"><div class="task-color ${subjectClass(t.subject)}">${subjectIcon(t.subject)}</div><div class="task-card-heading"><h3>${esc(t.title)}</h3><p>${esc(t.subject||'Schoolwork')} · ${doneCount(t)} of ${t.steps.length} steps</p></div><span class="task-due ${t.due&&t.due<=dateAt(1)&&!t.done.every(Boolean)?'soon':''}">${esc(dueLabel(t.due))}</span></div><ul class="task-steps">${t.steps.map((s,i)=>`<li class="task-step ${t.done[i]?'done':''}"><button class="mini-check ${t.done[i]?'checked':''}" data-step-task="${t.id}" data-step-index="${i}" aria-label="${t.done[i]?'Reopen':'Complete'} step: ${esc(s)}">✓</button><span>${esc(s)}</span></li>`).join('')}</ul>${t.note?`<p class="task-note">${esc(t.note)}</p>`:''}<div class="task-card-footer"><span class="task-progress-copy">${t.done.every(Boolean)?'Finished · nicely done':'Step '+(doneCount(t)+1)+' of '+t.steps.length}</span><div class="task-progress-track" aria-label="Task progress"><span style="width:${Math.round(doneCount(t)/t.steps.length*100)}%"></span></div><div class="task-actions"><button class="small-action" data-focus-task="${t.id}">${t.done.every(Boolean)?'Review':'Start a step'}</button><button class="small-action" data-reschedule="${t.id}">${t.due?'Move date':'Add date'}</button></div></div></article>`).join('');
   }
   function initResourceFilters(){
     const categories=[...new Set(resources.map(r=>r.category))].sort();
@@ -115,8 +115,8 @@
     log.innerHTML=coachMessages.map((m,i)=>{
       if(m.role==='user')return `<div class="chat-row user-row"><div class="chat-bubble user-bubble">${esc(m.text)}</div></div>`;
       const choices=m.choices?.length?`<div class="coach-choices">${m.choices.map(c=>`<button data-coach-prompt="${esc(c.text)}">${esc(c.label)}</button>`).join('')}</div>`:'';
-      const proposal=m.proposal?`<div class="coach-proposal"><span class="tiny-label">ONE POSSIBLE NEXT MOVE</span><p>${esc(m.proposal.action)}</p><div class="proposal-actions"><button class="button-primary" data-coach-add-task="${i}">Edit and add to tasks <span>→</span></button><button class="small-action" data-coach-feedback="helped" data-message-index="${i}">That feels doable</button><button class="small-action" data-coach-feedback="different" data-message-index="${i}">Try another idea</button></div>${m.proposal.resourceId?`<button class="coach-resource-link" data-open-resource="${esc(m.proposal.resourceId)}">Related reading: ${esc(resources.find(r=>r.id===m.proposal.resourceId)?.title||'View resource')} ↗</button>`:''}</div><details class="coach-more"><summary>A little more detail</summary><p>${esc(m.proposal.detail)}</p></details>`:'';
-      return `<div class="chat-row assistant-row"><div class="coach-avatar small-avatar" aria-hidden="true">◌</div><div class="assistant-stack"><div class="chat-bubble assistant-bubble">${esc(m.text)}</div>${choices}${proposal}</div></div>`;
+      const taskCta=m.proposal?.action?`<div class="coach-task-cta"><button class="small-action" data-coach-task="${i}">＋ Create a task from this</button></div>`:'';
+      return `<div class="chat-row assistant-row"><div class="coach-avatar small-avatar" aria-hidden="true">◌</div><div class="assistant-stack"><div class="chat-bubble assistant-bubble">${esc(m.text)}</div>${choices}${taskCta}</div></div>`;
     }).join('')+(coachBusy?'<div class="chat-row assistant-row"><div class="coach-avatar small-avatar" aria-hidden="true">◌</div><div class="chat-bubble assistant-bubble typing" role="status">Thinking through one next step…</div></div>':'');
     $('#coach-send').disabled=coachBusy;$('#coach-input').disabled=coachBusy;
     if(coachMessages.length)log.scrollTop=log.scrollHeight;
@@ -158,17 +158,13 @@
     }
     await submitCoachMessage(clean);
   }
-  function coachFeedback(kind,index){
-    const message=coachMessages[index],proposal=message?.proposal;if(!proposal)return;
-    if(kind==='helped'){coachContext.preferred=proposal.strategy;coachMessages.push({role:'assistant',text:'Thanks for telling me. I’ll use that as a clue for this conversation. You can add the suggested move to Tasks, or keep exploring.'});}
-    else{coachContext.attempted.push(proposal.strategy);coachMessages.push({role:'user',text:'That one does not feel like a fit. Could I try another approach?'});}
-    renderCoach();if(kind==='different')requestCoachReply('Please offer a different strategy for the same challenge.');
+  function createTaskFromCoach(index){
+    const proposal=coachMessages[index]?.proposal,title=(proposal?.action||'').trim().slice(0,100);
+    if(!title){notify('This reply has no task to create.');return}
+    state.tasks.unshift({id:'task-'+Date.now(),title,subject:'Study coach',due:'',steps:[title],done:[false],note:(proposal.detail||'').trim(),today:true});
+    refresh();notify('Task created from the coach. You can edit it in My tasks.');
   }
   function clearCoachConversation(showNotice=true){coachRequestId++;coachMessages=[];coachContext={challenge:'',attempted:[],preferred:''};coachBusy=false;coachLastPrompt='';$('#coach-input').value='';resizeCoachInput();$('#coach-error').classList.add('hidden');renderCoach();if(showNotice)notify('Conversation cleared from this tab.');}
-  function transferCoachAction(index){
-    const action=coachMessages[index]?.proposal?.action;if(!action)return;
-    openTaskForm(null,{title:action,subject:'Study coach',steps:[action]});
-  }
   function renderWeek(){const counts=Array(7).fill(0);const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const monday=new Date(today.getTime()-mondayOffset*day);for(const event of state.events){const stamp=new Date(event.at);stamp.setHours(0,0,0,0);const i=Math.floor((stamp-monday)/day);if(i>=0&&i<7)counts[i]++}const max=Math.max(2,...counts);const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];$('#week-bars').innerHTML=names.map((n,i)=>`<div class="week-day ${i===mondayOffset?'today':''}"><div class="bar-track"><div class="bar-fill" style="height:${Math.max(8,counts[i]/max*100)}%"></div></div><span>${n}</span></div>`).join('')}
   function refresh(){renderHome();renderTasks();renderWeek();save()}
   function openTaskForm(task=null,prefill=null){const d=$('#task-dialog'),draft=task||prefill;$('#task-form').dataset.edit=task?.id||'';$('#dialog-title').textContent=task?'Edit task':prefill?'Shape this into a task':'Add a task';$('#task-name').value=draft?.title||'';$('#task-subject').value=draft?.subject||'';$('#task-due').value=draft?.due||'';renderStepInputs(draft?.steps||[]);d.showModal();setTimeout(()=>$('#task-name').focus(),50)}
@@ -283,8 +279,7 @@
       const saveButton=e.target.closest('[data-save-resource]');if(saveButton){toggleSavedResource(saveButton.dataset.saveResource);return}
       const resourceButton=e.target.closest('[data-open-resource]');if(resourceButton){openResource(resourceButton.dataset.openResource);return}
       const promptButton=e.target.closest('[data-coach-prompt]');if(promptButton){sendCoachMessage(promptButton.dataset.coachPrompt);return}
-      const feedback=e.target.closest('[data-coach-feedback]');if(feedback){coachFeedback(feedback.dataset.coachFeedback,Number(feedback.dataset.messageIndex));return}
-      const addAction=e.target.closest('[data-coach-add-task]');if(addAction)transferCoachAction(Number(addAction.dataset.coachAddTask));
+      const coachTask=e.target.closest('[data-coach-task]');if(coachTask){createTaskFromCoach(Number(coachTask.dataset.coachTask));return}
     });
     document.addEventListener('keydown',e=>{if(e.key==='/'&&$('#view-resources').classList.contains('active')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#resource-search').focus()}});
   }

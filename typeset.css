@@ -21,7 +21,6 @@ body {
 .resource-detail-description,
 .resource-purpose p,
 .resource-disclaimer,
-.coach-more p,
 .focus-encouragement {
   font-size: var(--type-small);
   line-height: var(--leading-body);
@@ -91,8 +90,7 @@ body {
 .resource-detail-description,
 .resource-purpose p,
 .privacy-note p,
-.coach-intro p,
-.coach-more p {
+.coach-intro p {
   max-width: 65ch;
 }
 
@@ -114,7 +112,6 @@ body.dark-mode {
   .resource-detail-description,
   .resource-purpose p,
   .resource-disclaimer,
-  .coach-more p,
   .focus-encouragement {
     font-size: 12px;
   }
