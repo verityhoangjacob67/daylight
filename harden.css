@@ -17,8 +17,7 @@
 .resource-card h2,
 .resource-description,
 .task-card-heading h3,
-.priority-title,
-.coach-proposal > p {
+.priority-title {
   overflow-wrap: anywhere;
 }
 
