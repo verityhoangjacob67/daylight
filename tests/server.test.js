@@ -48,13 +48,18 @@ test('OpenRouter request sends one current message and asks for a strict JSON sc
   assert.equal(request.response_format.type, 'json_schema');
   assert.equal(request.response_format.json_schema.strict, true);
   assert.equal(request.provider.require_parameters, true);
-  assert.deepEqual(request.reasoning, { enabled: false });
   assert.deepEqual(request.plugins, [{ id: 'response-healing' }]);
 });
 
-test('assignment requests disable reasoning and still ask OpenRouter to parse the PDF', () => {
+test('router requests never send a reasoning field, which OpenRouter rejects', () => {
+  const chat = buildChatRequest('What should I start?', { challenge: 'starting', attempted: [], preferred: '' }, 'openrouter/free');
+  const breakdown = buildBreakdownRequest({ filename: 'essay.pdf', fileData: 'JVBERi0xLjQK' }, 'openrouter/free');
+  assert.equal('reasoning' in chat, false);
+  assert.equal('reasoning' in breakdown, false);
+});
+
+test('assignment requests ask OpenRouter to parse the PDF', () => {
   const request = buildBreakdownRequest({ filename: 'essay.pdf', fileData: 'JVBERi0xLjQK' }, 'openrouter/free');
-  assert.deepEqual(request.reasoning, { enabled: false });
   assert.deepEqual(request.plugins, [{ id: 'file-parser', pdf: { engine: 'cloudflare-ai' } }, { id: 'response-healing' }]);
   assert.equal(request.provider.require_parameters, true);
   assert.match(request.messages[1].content[0].file.file_data, /^data:application\/pdf;base64,/);
