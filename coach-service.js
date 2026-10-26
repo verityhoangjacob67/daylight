@@ -1,6 +1,14 @@
 // Scripted local demo only. A production AI adapter must call a server endpoint,
 // where credentials, validation, retention controls, and rate limits can live.
-function createDaylightCoachService({ delayMs = 380, fetchImpl = (...args) => fetch(...args), apiBase = '/api' } = {}) {
+function resolveApiBase() {
+  if (typeof window !== 'undefined' && typeof window.DAYLIGHT_API_BASE === 'string' && window.DAYLIGHT_API_BASE.trim()) {
+    const base = window.DAYLIGHT_API_BASE.trim().replace(/\/+$/, '');
+    if (base) return base;
+  }
+  return '/api';
+}
+
+function createDaylightCoachService({ delayMs = 380, fetchImpl = (...args) => fetch(...args), apiBase = resolveApiBase() } = {}) {
   let mode = 'preview';
   let liveConsent = false;
   let liveAvailable = false;

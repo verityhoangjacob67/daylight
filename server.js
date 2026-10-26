@@ -9,16 +9,42 @@ const MAX_PDF_BODY_BYTES = 12 * 1024 * 1024;
 const MAX_MESSAGE_LENGTH = 500;
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 10 * 60 * 1000;
+<<<<<<< HEAD
 const REQUEST_TIMEOUT_MS = 15_000;
 const PDF_REQUEST_TIMEOUT_MS = 60_000;
+=======
+const REQUEST_TIMEOUT_MS = 40_000;
+const DEFAULT_OPENROUTER_MODEL = 'openrouter/free';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://verityhoangjacob67.github.io',
+  'https://daylightt.me',
+  'https://www.daylightt.me',
+  'http://127.0.0.1:4173',
+  'http://localhost:4173',
+  'http://127.0.0.1:3002',
+  'http://localhost:3002'
+];
+>>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a
 const SAFE_RESOURCES = new Set(['cdc-classroom', 'cdc-treatment', 'chadd-organize-teens', 'chadd-homework', 'aap-guideline', 'chadd-peer-support']);
 const PUBLIC_FILES = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ['/index.html', ['index.html', 'text/html; charset=utf-8']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/features.css', ['features.css', 'text/css; charset=utf-8']],
+  ['/dark-mode.css', ['dark-mode.css', 'text/css; charset=utf-8']],
+  ['/colorize.css', ['colorize.css', 'text/css; charset=utf-8']],
+  ['/typeset.css', ['typeset.css', 'text/css; charset=utf-8']],
+  ['/adapt.css', ['adapt.css', 'text/css; charset=utf-8']],
+  ['/harden.css', ['harden.css', 'text/css; charset=utf-8']],
+  ['/optimize.css', ['optimize.css', 'text/css; charset=utf-8']],
+  ['/distill.css', ['distill.css', 'text/css; charset=utf-8']],
+  ['/polish.css', ['polish.css', 'text/css; charset=utf-8']],
+  ['/auth.css', ['auth.css', 'text/css; charset=utf-8']],
   ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/resources.js', ['resources.js', 'text/javascript; charset=utf-8']],
   ['/coach-service.js', ['coach-service.js', 'text/javascript; charset=utf-8']],
+  ['/api-config.js', ['api-config.js', 'text/javascript; charset=utf-8']],
   ['/firebase-config.js', ['firebase-config.js', 'text/javascript; charset=utf-8']],
   ['/firebase-client.js', ['firebase-client.js', 'text/javascript; charset=utf-8']],
   ['/public/icon.svg', ['public/icon.svg', 'image/svg+xml']]
@@ -35,8 +61,49 @@ function loadLocalEnv() {
 }
 
 function liveConfig(env = process.env) {
-  const enabled = env.AI_ENABLED === 'true' && Boolean(env.OPENAI_API_KEY) && Boolean(env.OPENAI_MODEL);
-  return { enabled, apiKey: enabled ? env.OPENAI_API_KEY : '', model: enabled ? env.OPENAI_MODEL : '' };
+  const enabled = env.AI_ENABLED === 'true' && Boolean(env.OPENROUTER_API_KEY);
+  return { enabled, apiKey: enabled ? env.OPENROUTER_API_KEY : '', model: enabled ? env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL : '' };
+}
+
+function normalizeOrigin(value) {
+  return typeof value === 'string' ? value.trim().replace(/\/+$/, '') : '';
+}
+
+function allowedOrigins(env = process.env) {
+  const configured = typeof env.ALLOWED_ORIGINS === 'string' ? env.ALLOWED_ORIGINS.split(',').map(normalizeOrigin).filter(Boolean) : [];
+  return new Set(configured.length ? configured : DEFAULT_ALLOWED_ORIGINS);
+}
+
+function requestProtocol(req) {
+  const forwarded = req.headers['x-forwarded-proto'];
+  if (typeof forwarded === 'string' && forwarded) return forwarded.split(',')[0].trim();
+  return req.socket && req.socket.encrypted ? 'https' : 'http';
+}
+
+function requestHost(req) {
+  const forwarded = req.headers['x-forwarded-host'];
+  const host = typeof forwarded === 'string' && forwarded ? forwarded : req.headers.host;
+  return typeof host === 'string' ? host.split(',')[0].trim().toLowerCase() : '';
+}
+
+function isSameOrigin(req, origin) {
+  const host = requestHost(req);
+  return Boolean(host) && origin === `${requestProtocol(req)}://${host}`;
+}
+
+function isOriginAllowed(req, env = process.env) {
+  const origin = normalizeOrigin(req.headers.origin);
+  return !origin || isSameOrigin(req, origin) || allowedOrigins(env).has(origin);
+}
+
+function applyCors(req, res, env = process.env) {
+  res.setHeader('vary', 'Origin');
+  const origin = normalizeOrigin(req.headers.origin);
+  if (!origin || !isOriginAllowed(req, env)) return;
+  res.setHeader('access-control-allow-origin', origin);
+  res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type, accept');
+  res.setHeader('access-control-max-age', '600');
 }
 
 function validateCoachPayload(value) {
@@ -51,7 +118,7 @@ function validateCoachPayload(value) {
   return { value: { message, context: { challenge, attempted, preferred } } };
 }
 
-function buildResponsesRequest(message, context, model) {
+function buildChatRequest(message, context, model) {
   const schema = {
     type: 'object', additionalProperties: false,
     properties: {
@@ -67,10 +134,13 @@ function buildResponsesRequest(message, context, model) {
     context.preferred ? `Student said this strategy helped: ${context.preferred}.` : ''
   ].filter(Boolean).join(' ');
   return {
-    model, store: false, max_output_tokens: 320,
-    instructions: 'You are Daylight, a supportive schoolwork coach for students. Give one concise, kind, practical next step for starting, organizing, focusing, or returning to schoolwork. Ask one brief question with up to three simple choices only when the message is unclear; when asking, leave action, strategy, detail, and resourceId empty. Otherwise provide one optional, editable action and a short explanation. Never diagnose, give medical advice, imply clinical effectiveness, shame the student, or say productivity determines worth. Do not mention unavailable features. Use plain language. Only select a resourceId from the allowed enum when genuinely useful. The app is a supportive tool, not treatment or a replacement for professional care.',
-    input: [{ role: 'user', content: [{ type: 'input_text', text: `${coachingContext ? `Brief coaching context: ${coachingContext}\n` : ''}Current message: ${message}` }] }],
-    text: { format: { type: 'json_schema', name: 'daylight_coach_reply', strict: true, schema } }
+    model, max_tokens: 1600, plugins: [{ id: 'response-healing' }],
+    messages: [
+      { role: 'system', content: 'You are Daylight, a supportive schoolwork coach for students. Give one concise, kind, practical next step for starting, organizing, focusing, or returning to schoolwork. Ask one brief question with up to three simple choices only when the message is unclear; when asking, leave action, strategy, detail, and resourceId empty. Otherwise provide one optional, editable action and a short explanation. Never diagnose, give medical advice, imply clinical effectiveness, shame the student, or say productivity determines worth. Do not mention unavailable features. Use plain language. Only select a resourceId from the allowed enum when genuinely useful. The app is a supportive tool, not treatment or a replacement for professional care.' },
+      { role: 'user', content: `${coachingContext ? `Brief coaching context: ${coachingContext}\n` : ''}Current message: ${message}` }
+    ],
+    response_format: { type: 'json_schema', json_schema: { name: 'daylight_coach_reply', strict: true, schema } },
+    provider: { require_parameters: true }
   };
 }
 
@@ -166,10 +236,31 @@ function readJson(req, maxBytes = MAX_BODY_BYTES) {
   });
 }
 
-function outputText(response) {
-  if (typeof response.output_text === 'string') return response.output_text;
-  for (const item of response.output || []) for (const part of item.content || []) if (part.type === 'output_text' && typeof part.text === 'string') return part.text;
+function chatOutputText(response) {
+  const content = response && response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content;
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) return content.filter(part => part && part.type === 'text' && typeof part.text === 'string').map(part => part.text).join('');
   return '';
+}
+
+async function coachReply(payload, { env = process.env, fetchImpl = fetch } = {}) {
+  const validated = validateCoachPayload(payload);
+  if (validated.error) return { status: 400, body: { error: validated.error } };
+  const config = liveConfig(env);
+  if (!config.enabled) return { status: 503, body: { error: 'Live AI is not configured. You can keep using local preview.' } };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetchImpl(OPENROUTER_URL, {
+      method: 'POST', signal: controller.signal,
+      headers: { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json', 'x-openrouter-title': 'Daylight' },
+      body: JSON.stringify(buildChatRequest(validated.value.message, validated.value.context, config.model))
+    });
+    if (!response.ok) return { status: 502, body: { error: 'The live coach is temporarily unavailable. Try again in a moment.' } };
+    return { status: 200, body: normalizeCoachOutput(chatOutputText(await response.json())) };
+  } catch {
+    return { status: 502, body: { error: 'The live coach is temporarily unavailable. Try again in a moment.' } };
+  } finally { clearTimeout(timeout); }
 }
 
 function createAppServer({ env = process.env, fetchImpl = fetch, now = Date.now } = {}) {
@@ -178,9 +269,12 @@ function createAppServer({ env = process.env, fetchImpl = fetch, now = Date.now 
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'strict-origin-when-cross-origin');
     res.setHeader('x-frame-options', 'DENY');
-    res.setHeader('content-security-policy', "default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com; frame-src 'self' https://*.firebaseapp.com; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    res.setHeader('content-security-policy', "default-src 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.vercel.app; frame-src 'self' https://*.firebaseapp.com; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    applyCors(req, res, env);
     let pathname;
     try { pathname = new URL(req.url, 'http://localhost').pathname; } catch { return sendJson(res, 400, { error: 'Invalid request.' }); }
+    if (pathname.startsWith('/api/') && !isOriginAllowed(req, env)) return sendJson(res, 403, { error: 'Origin not allowed.' });
+    if (req.method === 'OPTIONS' && (pathname === '/api/health' || pathname === '/api/coach')) { res.writeHead(204); return res.end(); }
     if (req.method === 'GET' && pathname === '/api/health') return sendJson(res, 200, { mode: liveConfig(env).enabled ? 'live' : 'preview' });
     if (pathname === '/api/assignment-breakdown' && req.method === 'POST') {
       const ip = req.socket.remoteAddress || 'unknown';
@@ -210,24 +304,8 @@ function createAppServer({ env = process.env, fetchImpl = fetch, now = Date.now 
       if (!allowRequest(ip)) return sendJson(res, 429, { error: 'A short pause, then try again.' });
       let body;
       try { body = await readJson(req); } catch (error) { return sendJson(res, error.status || 400, { error: error.status ? error.message : 'Request could not be read.' }); }
-      const validated = validateCoachPayload(body);
-      if (validated.error) return sendJson(res, 400, { error: validated.error });
-      const config = liveConfig(env);
-      if (!config.enabled) return sendJson(res, 503, { error: 'Live AI is not configured. You can keep using local preview.' });
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-      try {
-        const response = await fetchImpl('https://api.openai.com/v1/responses', {
-          method: 'POST', signal: controller.signal,
-          headers: { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json' },
-          body: JSON.stringify(buildResponsesRequest(validated.value.message, validated.value.context, config.model))
-        });
-        if (!response.ok) return sendJson(res, 502, { error: 'The live coach is temporarily unavailable. Try again in a moment.' });
-        const result = normalizeCoachOutput(outputText(await response.json()));
-        return sendJson(res, 200, result);
-      } catch {
-        return sendJson(res, 502, { error: 'The live coach is temporarily unavailable. Try again in a moment.' });
-      } finally { clearTimeout(timeout); }
+      const result = await coachReply(body, { env, fetchImpl });
+      return sendJson(res, result.status, result.body);
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'Method not allowed.' });
     const file = PUBLIC_FILES.get(pathname);
@@ -247,4 +325,8 @@ if (require.main === module) {
   createAppServer().listen(port, host, () => console.log(`Daylight is available at http://${host}:${port}`));
 }
 
+<<<<<<< HEAD
 module.exports = { MAX_BODY_BYTES, MAX_PDF_BYTES, buildBreakdownRequest, buildResponsesRequest, createAppServer, createRateLimiter, liveConfig, loadLocalEnv, normalizeBreakdownOutput, normalizeCoachOutput, validateBreakdownPayload, validateCoachPayload };
+=======
+module.exports = { DEFAULT_ALLOWED_ORIGINS, MAX_BODY_BYTES, allowedOrigins, applyCors, buildChatRequest, coachReply, createAppServer, createRateLimiter, isOriginAllowed, isSameOrigin, liveConfig, loadLocalEnv, normalizeCoachOutput, readJson, sendJson, validateCoachPayload };
+>>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a

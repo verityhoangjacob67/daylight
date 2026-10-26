@@ -58,6 +58,23 @@ test('coach uses feedback as conversation context without claiming clinical auth
   assert.doesNotMatch(second.text,/diagnos|therapist|clinician/i);
 });
 
+test('coach service can target a separately hosted API base', async () => {
+  const previousWindow = globalThis.window;
+  globalThis.window = { DAYLIGHT_API_BASE: 'https://daylight-api.vercel.app/api/' };
+  try {
+    let requested;
+    const coach = createCoachService({ delayMs: 0, fetchImpl: async url => {
+      requested = url;
+      return { ok: true, json: async () => ({ mode: 'preview' }) };
+    } });
+    await coach.checkStatus();
+    assert.equal(requested, 'https://daylight-api.vercel.app/api/health');
+  } finally {
+    if (previousWindow === undefined) delete globalThis.window;
+    else globalThis.window = previousWindow;
+  }
+});
+
 test('live coach stays local until the session explicitly opts in', async () => {
   let liveRequests = 0;
   const coach=createCoachService({delayMs:0,fetchImpl:async url=>{

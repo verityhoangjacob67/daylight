@@ -45,7 +45,7 @@ Students use Daylight in a browser while organizing assignments, choosing a next
 
 - Product shell and workflows: [index.html](./index.html).
 - Client-side state, task flows, settings, focus timer, resources, and coach UI: [app.js](./app.js).
-- Existing visual implementation: [styles.css](./styles.css).
+- Existing visual implementation: [styles.css](./styles.css), [features.css](./features.css), and [dark-mode.css](./dark-mode.css).
 - Product and local-run details: [README.md](./README.md).
 - Optional server-side coach behavior and privacy boundaries: [server.js](./server.js) and [coach-service.js](./coach-service.js).
 - Curated resource data: [resources.js](./resources.js).

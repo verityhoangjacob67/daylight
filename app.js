@@ -112,11 +112,11 @@
   function renderCoach(){
     const intro=$('#coach-intro'),log=$('#coach-messages');
     intro.classList.toggle('hidden',coachMessages.length>0);log.classList.toggle('hidden',coachMessages.length===0);
-    log.innerHTML=coachMessages.map((m,i)=>{
+    log.innerHTML=coachMessages.map(m=>{
       if(m.role==='user')return `<div class="chat-row user-row"><div class="chat-bubble user-bubble">${esc(m.text)}</div></div>`;
       const choices=m.choices?.length?`<div class="coach-choices">${m.choices.map(c=>`<button data-coach-prompt="${esc(c.text)}">${esc(c.label)}</button>`).join('')}</div>`:'';
-      const proposal=m.proposal?`<div class="coach-proposal"><span class="tiny-label">ONE POSSIBLE NEXT MOVE</span><p>${esc(m.proposal.action)}</p><div class="proposal-actions"><button class="button-primary" data-coach-add-task="${i}">Edit and add to tasks <span>→</span></button><button class="small-action" data-coach-feedback="helped" data-message-index="${i}">That feels doable</button><button class="small-action" data-coach-feedback="different" data-message-index="${i}">Try another idea</button></div>${m.proposal.resourceId?`<button class="coach-resource-link" data-open-resource="${esc(m.proposal.resourceId)}">Related reading: ${esc(resources.find(r=>r.id===m.proposal.resourceId)?.title||'View resource')} ↗</button>`:''}</div><details class="coach-more"><summary>A little more detail</summary><p>${esc(m.proposal.detail)}</p></details>`:'';
-      return `<div class="chat-row assistant-row"><div class="coach-avatar small-avatar" aria-hidden="true">◌</div><div class="assistant-stack"><div class="chat-bubble assistant-bubble">${esc(m.text)}</div>${choices}${proposal}</div></div>`;
+      const advice=m.proposal&&!m.text.toLowerCase().includes(m.proposal.action.toLowerCase())?` ${m.proposal.action}`:'';
+      return `<div class="chat-row assistant-row"><div class="coach-avatar small-avatar" aria-hidden="true">◌</div><div class="assistant-stack"><div class="chat-bubble assistant-bubble">${esc(m.text+advice)}</div>${choices}</div></div>`;
     }).join('')+(coachBusy?'<div class="chat-row assistant-row"><div class="coach-avatar small-avatar" aria-hidden="true">◌</div><div class="chat-bubble assistant-bubble typing" role="status">Thinking through one next step…</div></div>':'');
     $('#coach-send').disabled=coachBusy;$('#coach-input').disabled=coachBusy;
     if(coachMessages.length)log.scrollTop=log.scrollHeight;
@@ -127,7 +127,7 @@
     const liveAvailable=coachService.mode==='live-available';
     const liveEnabled=coachService.mode==='live-enabled';
     $('#coach-mode-title').textContent=liveEnabled?'Live AI coach':liveAvailable?'Live AI available':'Local coach preview';
-    $('#coach-mode-copy').textContent=liveEnabled?'Your message and brief coach choices are sent to OpenAI for replies. Daylight does not save this chat; avoid identifying details.':coachService.liveAvailable?'Scripted suggestions are local. You can optionally enable live AI for this session; messages will be sent to OpenAI.':'Scripted suggestions only. Messages stay in this tab and clear when you leave or choose “Clear conversation.”';
+    $('#coach-mode-copy').textContent=liveEnabled?'Your message and brief coach choices are sent to OpenRouter, which routes them to a free AI model. Free models may log or train on messages. Daylight does not save this chat; avoid identifying details.':coachService.liveAvailable?'Scripted suggestions are local. You can optionally enable live AI for this session; messages will be sent to OpenRouter.':'Scripted suggestions only. Messages stay in this tab and clear when you leave or choose “Clear conversation.”';
     $('#enable-live-coach').classList.toggle('hidden',!coachService.liveAvailable||liveEnabled);
     $('#use-local-coach').classList.toggle('hidden',!liveEnabled);
     $('#choose-assignment-pdf').disabled=!coachService.liveAvailable||assignmentBusy;
@@ -137,13 +137,21 @@
   async function requestCoachReply(text){
     const requestId=++coachRequestId;coachBusy=true;$('#coach-error').classList.add('hidden');renderCoach();
     let timeoutId;
-    try{const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Coach request timed out')),12000)});const result=await Promise.race([coachService.reply(text,coachContext),timeout]);if(requestId!==coachRequestId)return;coachMessages.push({role:'assistant',...result});coachBusy=false;renderCoach();}
+    try{const timeout=new Promise((_,reject)=>{timeoutId=setTimeout(()=>reject(new Error('Coach request timed out')),45000)});const result=await Promise.race([coachService.reply(text,coachContext),timeout]);if(requestId!==coachRequestId)return;coachMessages.push({role:'assistant',...result});coachBusy=false;renderCoach();}
     catch{if(requestId!==coachRequestId)return;coachBusy=false;$('#coach-error').classList.remove('hidden');renderCoach();}
     finally{clearTimeout(timeoutId)}
   }
   async function submitCoachMessage(clean){
-    coachLastPrompt=clean;coachMessages.push({role:'user',text:clean});$('#coach-input').value='';
+    coachLastPrompt=clean;coachMessages.push({role:'user',text:clean});$('#coach-input').value='';resizeCoachInput();
     await requestCoachReply(clean);
+  }
+  function resizeCoachInput(){
+    const input=$('#coach-input');if(!input)return;
+    const maxHeight=110;
+    input.style.height='auto';
+    const needed=input.scrollHeight+2;
+    input.style.height=Math.min(needed,maxHeight)+'px';
+    input.style.overflowY=needed>maxHeight?'auto':'hidden';
   }
   async function sendCoachMessage(text){
     const clean=text.trim().slice(0,500);if(!clean||coachBusy)return;
@@ -152,6 +160,7 @@
     }
     await submitCoachMessage(clean);
   }
+<<<<<<< HEAD
   function coachFeedback(kind,index){
     const message=coachMessages[index],proposal=message?.proposal;if(!proposal)return;
     if(kind==='helped'){coachContext.preferred=proposal.strategy;coachMessages.push({role:'assistant',text:'Thanks for telling me. I’ll use that as a clue for this conversation. You can add the suggested move to Tasks, or keep exploring.'});}
@@ -194,6 +203,9 @@
     state.tasks.unshift({id:'task-'+Date.now(),title:title.slice(0,100),subject:$('#assignment-task-subject').value.trim().slice(0,40),due:$('#assignment-task-due').value,steps:steps.slice(0,12),done:steps.slice(0,12).map(()=>false),today:true});
     $('#assignment-review-dialog').close();$('#assignment-pdf').value='';setAssignmentStatus('Task saved. You can change the steps any time.');refresh();showView('tasks');notify('Assignment task saved. Review the steps whenever you like.');
   }
+=======
+  function clearCoachConversation(showNotice=true){coachRequestId++;coachMessages=[];coachContext={challenge:'',attempted:[],preferred:''};coachBusy=false;coachLastPrompt='';$('#coach-input').value='';resizeCoachInput();$('#coach-error').classList.add('hidden');renderCoach();if(showNotice)notify('Conversation cleared from this tab.');}
+>>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a
   function renderWeek(){const counts=Array(7).fill(0);const today=new Date();today.setHours(0,0,0,0);const mondayOffset=(today.getDay()+6)%7;const monday=new Date(today.getTime()-mondayOffset*day);for(const event of state.events){const stamp=new Date(event.at);stamp.setHours(0,0,0,0);const i=Math.floor((stamp-monday)/day);if(i>=0&&i<7)counts[i]++}const max=Math.max(2,...counts);const names=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];$('#week-bars').innerHTML=names.map((n,i)=>`<div class="week-day ${i===mondayOffset?'today':''}"><div class="bar-track"><div class="bar-fill" style="height:${Math.max(8,counts[i]/max*100)}%"></div></div><span>${n}</span></div>`).join('')}
   function refresh(){renderHome();renderTasks();renderWeek();save()}
   function openTaskForm(task=null,prefill=null){const d=$('#task-dialog'),draft=task||prefill;$('#task-form').dataset.edit=task?.id||'';$('#dialog-title').textContent=task?'Edit task':prefill?'Shape this into a task':'Add a task';$('#task-name').value=draft?.title||'';$('#task-subject').value=draft?.subject||'';$('#task-due').value=draft?.due||'';renderStepInputs(draft?.steps||[]);d.showModal();setTimeout(()=>$('#task-name').focus(),50)}
@@ -266,7 +278,7 @@
     $$('[data-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
     $$('[data-go="tasks"]').forEach(b=>b.addEventListener('click',()=>showView('tasks')));
     $('#add-task').addEventListener('click',()=>openTaskForm());$('#quick-add').addEventListener('click',()=>openTaskForm());$('#capture-button').addEventListener('click',()=>openTaskForm());$('#empty-add').addEventListener('click',()=>openTaskForm());
-    $('#cancel-task').addEventListener('click',()=>$('#task-dialog').close());$('#task-form').addEventListener('submit',e=>{e.preventDefault();if(taskSaving)return;const form=e.currentTarget,title=$('#task-name').value.trim(),error=$('#task-form-error');error.classList.add('hidden');error.textContent='';if(!title){error.textContent='Add a task name so you know what to start.';error.classList.remove('hidden');$('#task-name').setAttribute('aria-invalid','true');$('#task-name').focus();return}$('#task-name').removeAttribute('aria-invalid');taskSaving=true;form.setAttribute('aria-busy','true');const submit=form.querySelector('[type="submit"]');submit.disabled=true;try{const steps=$$('#step-inputs input').map(x=>x.value.trim()).filter(Boolean);const editId=form.dataset.edit;const subject=$('#task-subject').value.trim();const due=$('#task-due').value;if(editId){const t=state.tasks.find(x=>x.id===editId);if(t){t.title=title;t.subject=subject;t.due=due;t.steps=steps.length?steps:[title];t.done=t.steps.map((_,i)=>t.done[i]||false)}}else{state.tasks.unshift({id:'task-'+Date.now(),title,subject,due,steps:steps.length?steps:[`Open ${title}`],done:(steps.length?steps:[title]).map(()=>false),today:true})}$('#task-dialog').close();refresh();notify(editId?'Task updated.':'Task saved. One small step is ready.')}finally{taskSaving=false;form.removeAttribute('aria-busy');submit.disabled=false}});
+    $('#task-close').addEventListener('click',()=>$('#task-dialog').close());$('#cancel-task').addEventListener('click',()=>$('#task-dialog').close());$('#task-form').addEventListener('submit',e=>{e.preventDefault();if(taskSaving)return;const form=e.currentTarget,title=$('#task-name').value.trim(),error=$('#task-form-error');error.classList.add('hidden');error.textContent='';if(!title){error.textContent='Add a task name so you know what to start.';error.classList.remove('hidden');$('#task-name').setAttribute('aria-invalid','true');$('#task-name').focus();return}$('#task-name').removeAttribute('aria-invalid');taskSaving=true;form.setAttribute('aria-busy','true');const submit=form.querySelector('[type="submit"]');submit.disabled=true;try{const steps=$$('#step-inputs input').map(x=>x.value.trim()).filter(Boolean);const editId=form.dataset.edit;const subject=$('#task-subject').value.trim();const due=$('#task-due').value;if(editId){const t=state.tasks.find(x=>x.id===editId);if(t){t.title=title;t.subject=subject;t.due=due;t.steps=steps.length?steps:[title];t.done=t.steps.map((_,i)=>t.done[i]||false)}}else{state.tasks.unshift({id:'task-'+Date.now(),title,subject,due,steps:steps.length?steps:[`Open ${title}`],done:(steps.length?steps:[title]).map(()=>false),today:true})}$('#task-dialog').close();refresh();notify(editId?'Task updated.':'Task saved. One small step is ready.')}finally{taskSaving=false;form.removeAttribute('aria-busy');submit.disabled=false}});
     $('#add-step').addEventListener('click',()=>{const current=$$('#step-inputs input').map(x=>x.value);renderStepInputs([...current,'']);$('#step-inputs input:last-of-type')?.focus()});$('#suggest-steps').addEventListener('click',suggestSteps);$('#step-inputs').addEventListener('click',e=>{if(e.target.classList.contains('remove-step')){const row=e.target.closest('.step-field');if($$('.step-field').length>1)row.remove();else row.querySelector('input').value='';$$('.step-field').forEach((r,i)=>r.querySelector('.step-bullet').textContent=i+1)}});
     $('#task-list').addEventListener('click',e=>{const step=e.target.closest('[data-step-task]');if(step){toggleStep(step.dataset.stepTask,Number(step.dataset.stepIndex));return}const focus=e.target.closest('[data-focus-task]');if(focus){beginFocus(focus.dataset.focusTask);return}const move=e.target.closest('[data-reschedule]');if(move)reschedule(move.dataset.reschedule)});
     $('#priority-list').addEventListener('click',e=>{const check=e.target.closest('[data-toggle-task]');if(check){const t=state.tasks.find(x=>x.id===check.dataset.toggleTask);if(t){const i=firstOpenStep(t);if(i>=0)toggleStep(t.id,i);else notify('This task is already finished.')}return}const b=e.target.closest('[data-focus-task]');if(b)beginFocus(b.dataset.focusTask)});
@@ -286,6 +298,7 @@
     $('#saved-only').addEventListener('click',e=>{savedOnly=!savedOnly;e.currentTarget.setAttribute('aria-pressed',String(savedOnly));e.currentTarget.classList.toggle('active',savedOnly);renderResources()});
     $('#clear-resource-search').addEventListener('click',()=>{resourceSearch='';resourceCategory='all';resourceFormat='all';resourceTime='all';savedOnly=false;clearTimeout(resourceSearchTimer);$('#resource-search').value='';$('#resource-category').value='all';$('#resource-format').value='all';$('#resource-time').value='all';$('#saved-only').setAttribute('aria-pressed','false');$('#saved-only').classList.remove('active');renderResources()});
     $('#coach-form').addEventListener('submit',e=>{e.preventDefault();sendCoachMessage($('#coach-input').value)});
+<<<<<<< HEAD
     $('#choose-assignment-pdf').addEventListener('click',()=>$('#assignment-pdf').click());
     $('#assignment-pdf').addEventListener('change',e=>chooseAssignmentFile(e.target.files?.[0]));
     $('#assignment-consent-send').addEventListener('click',submitAssignmentFile);
@@ -297,6 +310,11 @@
     $('#assignment-review-cancel').addEventListener('click',()=>$('#assignment-review-dialog').close());
     $('#assignment-review-add-step').addEventListener('click',()=>{const container=$('#assignment-review-steps'),count=container.querySelectorAll('.assignment-review-step').length;if(count>=12){notify('Keep the breakdown to 12 steps or fewer.');return}const item=document.createElement('div');item.className='assignment-review-step';item.innerHTML=`<span>${count+1}</span><input class="text-input" maxlength="100" aria-label="Step ${count+1}" /><button type="button" class="remove-step" aria-label="Remove step ${count+1}">×</button>`;container.append(item);item.querySelector('input').focus()});
     $('#assignment-review-steps').addEventListener('click',e=>{if(!e.target.classList.contains('remove-step'))return;const row=e.target.closest('.assignment-review-step');if(row)row.remove();[...$('#assignment-review-steps').querySelectorAll('.assignment-review-step')].forEach((item,i)=>{item.querySelector('span').textContent=i+1;item.querySelector('input').setAttribute('aria-label',`Step ${i+1}`);item.querySelector('button').setAttribute('aria-label',`Remove step ${i+1}`)})});
+=======
+    $('#coach-input').addEventListener('keydown',e=>{if(e.key!=='Enter'||e.shiftKey||e.isComposing||e.keyCode===229)return;e.preventDefault();if(e.currentTarget.value.trim())e.currentTarget.form.requestSubmit()});
+    $('#coach-input').addEventListener('input',resizeCoachInput);
+    resizeCoachInput();
+>>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a
     $('#enable-live-coach').addEventListener('click',()=>{pendingCoachPrompt='';$('#ai-consent-dialog').showModal()});
     $('#ai-consent-accept').addEventListener('click',()=>{coachService.enableLive?.();$('#ai-consent-dialog').close();renderCoachMode();const pending=pendingCoachPrompt;pendingCoachPrompt='';if(pending)submitCoachMessage(pending)});
     $('#ai-consent-preview').addEventListener('click',()=>{coachService.usePreview?.();$('#ai-consent-dialog').close();renderCoachMode();const pending=pendingCoachPrompt;pendingCoachPrompt='';if(pending)submitCoachMessage(pending)});
@@ -316,8 +334,6 @@
       const saveButton=e.target.closest('[data-save-resource]');if(saveButton){toggleSavedResource(saveButton.dataset.saveResource);return}
       const resourceButton=e.target.closest('[data-open-resource]');if(resourceButton){openResource(resourceButton.dataset.openResource);return}
       const promptButton=e.target.closest('[data-coach-prompt]');if(promptButton){sendCoachMessage(promptButton.dataset.coachPrompt);return}
-      const feedback=e.target.closest('[data-coach-feedback]');if(feedback){coachFeedback(feedback.dataset.coachFeedback,Number(feedback.dataset.messageIndex));return}
-      const addAction=e.target.closest('[data-coach-add-task]');if(addAction)transferCoachAction(Number(addAction.dataset.coachAddTask));
     });
     document.addEventListener('keydown',e=>{if(e.key==='/'&&$('#view-resources').classList.contains('active')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#resource-search').focus()}});
   }
