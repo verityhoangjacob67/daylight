@@ -1,10 +1,6 @@
 # Daylight
 
-<<<<<<< HEAD
-Daylight is a browser prototype for student planning, focus sessions, resources, and an optional AI study coach with assignment PDF breakdown. Tasks and preferences remain in browser local storage. The included Node server adds stateless AI endpoints and serves the static app; it does not add accounts or a database.
-=======
-Daylight is a browser prototype for student planning, focus sessions, resources, and an optional study coach. Tasks and preferences remain in browser local storage. The included Node server adds a stateless coach API and serves the static app; it does not add accounts or a database. You can keep the static frontend on GitHub Pages and run only the API on a free host such as Vercel.
->>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a
+Daylight is a browser prototype for student planning, focus sessions, resources, and an optional study coach with assignment PDF breakdown. Tasks and preferences remain in browser local storage. The included Node server adds stateless AI endpoints and serves the static app; it does not add accounts or a database. You can keep the static frontend on GitHub Pages and run the API on Vercel.
 
 ## Run locally
 
@@ -14,7 +10,7 @@ Requires Node.js 18 or newer. From this folder:
 npm start
 ```
 
-Open <http://127.0.0.1:4173>. The app stays in local scripted-preview mode unless live AI is configured. You can also open `index.html` directly, but live coach replies and PDF breakdown require the server URL.
+Open <http://127.0.0.1:4173>. The app stays in local scripted-preview mode unless live AI is configured. You can also open `index.html` directly, but the live backend requires the server URL.
 
 ## Optional live AI coach and assignment breakdown
 
@@ -24,12 +20,9 @@ Open <http://127.0.0.1:4173>. The app stays in local scripted-preview mode unles
 4. Change `AI_ENABLED=true`, then run `npm start` again.
 5. In the Coach screen, choose **Enable live AI** and consent for the current browser session.
 
-<<<<<<< HEAD
-Students can also choose an assignment PDF (up to 8 MB) in the Coach screen. The file is sent to OpenAI only after a separate confirmation, and the student reviews and edits the suggested title and steps before saving a task. Daylight does not write the uploaded PDF to disk or retain it. PDF understanding requires a configured model that supports PDF visual input and Structured Outputs. PDF input can use more tokens than text-only messages; see [OpenAI's file input guide](https://developers.openai.com/api/docs/guides/file-inputs) for supported formats and processing details.
-
-The server sends only the current coach message plus a few short, typed coaching preferences. It does not send assignment lists, task titles, due dates, previous chat messages, or the app's local task store. Daylight itself does not retain chat requests or responses on the server. The live provider processes the request; review the provider's current data controls and terms before using this with students. Avoid personal or identifying details. The coach is not treatment or professional care.
-=======
 OpenRouter's free models have per-minute and daily request limits and can be slower or temporarily busy. If a key is rate-limited, the coach reports that live AI is temporarily unavailable; the local scripted preview keeps working. OpenRouter may require enabling free-model prompt training in its privacy settings before free models are available, so free models may log or train on messages. Use this configuration only with non-identifying content.
+
+In the Coach screen, students can choose a PDF up to 3 MB and review a separate consent notice before it is sent. The file is sent to OpenRouter for PDF parsing and then routed to the configured model. The student edits the suggested task and steps before saving; Daylight does not write the PDF to disk. The `cloudflare-ai` PDF parsing engine is selected to avoid the paid OCR engine, so scanned/image-only assignments may not be readable. Free model providers may log or train on submitted content; avoid personal or identifying details.
 
 ## Host the frontend on GitHub Pages with the API elsewhere
 
@@ -65,7 +58,6 @@ The API allows browser requests only from `ALLOWED_ORIGINS`. Defaults include th
 If you use Firebase accounts, add the GitHub Pages or custom domain to **Firebase Authentication → Settings → Authorized domains** so sign-in works from the new origin.
 
 The server sends only the current coach message plus a few short, typed coaching preferences. It does not send assignment lists, task titles, due dates, previous chat messages, or the app's local task store. Daylight itself does not retain chat requests or responses on the server. OpenRouter and the free model provider process the request; review their current data controls, privacy settings, and terms before using this with students, since free models may log or train on requests. Avoid personal or identifying details. The coach is not treatment or professional care.
->>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a
 
 ## Firebase account sync
 
@@ -77,11 +69,7 @@ firebase deploy --only firestore:rules
 
 The Firebase web configuration is intentionally client-visible; Firebase Authentication and Firestore rules enforce access. Never place an admin SDK credential or service-account key in the browser.
 
-<<<<<<< HEAD
-The coach endpoint applies a 12 KB request body cap, a 500 character message limit, and a 15-second upstream timeout. The PDF endpoint accepts PDFs up to 8 MB, caps its encoded request body at 12 MB, and allows up to 60 seconds for document processing. Both share a 20-request / 10-minute in-memory IP limit, constrained JSON response schemas, and generic upstream errors. The server does not log message or file content. The local server binds to `127.0.0.1`; it is not a production deployment configuration.
-=======
-The endpoint applies a 12 KB request body cap, 500 character message limit, 20-request / 10-minute in-memory IP limit, a 40-second upstream timeout, a constrained JSON response schema, CORS origin checks, and generic upstream errors. It does not log message content. The local server binds to `127.0.0.1`; it is not a production deployment configuration.
->>>>>>> 3f40e03f05358792d948147fac6192021bd18b9a
+The coach endpoint applies a 12 KB request body cap and a 500 character message limit. The PDF endpoint caps encoded bodies at 4.5 MB and accepts PDFs up to 3 MB. Both use a 20-request / 10-minute in-memory IP limit, a 40-second upstream timeout, constrained JSON response schemas, CORS origin checks, and generic upstream errors. The server does not log message or file content. The local server binds to `127.0.0.1`; it is not a production deployment configuration.
 
 ## Checks
 
