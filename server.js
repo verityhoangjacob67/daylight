@@ -71,32 +71,20 @@ function allowedOrigins(env = process.env) {
   return new Set(configured.length ? configured : DEFAULT_ALLOWED_ORIGINS);
 }
 
-function requestProtocol(req) {
-  const forwarded = req.headers['x-forwarded-proto'];
-  if (typeof forwarded === 'string' && forwarded) return forwarded.split(',')[0].trim();
-  return req.socket && req.socket.encrypted ? 'https' : 'http';
+function isSameOrigin(req, origin, protocol = req.socket?.encrypted ? 'https' : 'http') {
+  const host = req.headers.host;
+  return typeof host === 'string' && origin === `${protocol}://${host.toLowerCase()}`;
 }
 
-function requestHost(req) {
-  const forwarded = req.headers['x-forwarded-host'];
-  const host = typeof forwarded === 'string' && forwarded ? forwarded : req.headers.host;
-  return typeof host === 'string' ? host.split(',')[0].trim().toLowerCase() : '';
-}
-
-function isSameOrigin(req, origin) {
-  const host = requestHost(req);
-  return Boolean(host) && origin === `${requestProtocol(req)}://${host}`;
-}
-
-function isOriginAllowed(req, env = process.env) {
+function isOriginAllowed(req, env = process.env, protocol) {
   const origin = normalizeOrigin(req.headers.origin);
-  return !origin || isSameOrigin(req, origin) || allowedOrigins(env).has(origin);
+  return !origin || isSameOrigin(req, origin, protocol) || allowedOrigins(env).has(origin);
 }
 
-function applyCors(req, res, env = process.env) {
+function applyCors(req, res, env = process.env, protocol) {
   res.setHeader('vary', 'Origin');
   const origin = normalizeOrigin(req.headers.origin);
-  if (!origin || !isOriginAllowed(req, env)) return;
+  if (!origin || !isOriginAllowed(req, env, protocol)) return;
   res.setHeader('access-control-allow-origin', origin);
   res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
   res.setHeader('access-control-allow-headers', 'content-type, accept');
@@ -144,12 +132,11 @@ function buildChatRequest(message, context, model) {
 function validateBreakdownPayload(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.fileData !== 'string') return { error: 'Choose an assignment PDF to continue.' };
   const fileData = value.fileData;
-  if (!fileData || fileData.length > Math.ceil(MAX_PDF_BYTES / 3) * 4 || fileData.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(fileData)) return { error: 'This PDF is too large or could not be read. Choose a PDF under 3 MB.' };
+  if (!fileData || fileData.length > Math.ceil(MAX_PDF_BYTES / 3) * 4) return { error: 'This PDF is too large or could not be read. Choose a PDF up to 3 MB.' };
   const bytes = Buffer.from(fileData, 'base64');
-  if (!bytes.length || bytes.length > MAX_PDF_BYTES) return { error: 'Choose a PDF under 3 MB.' };
-  if (bytes.subarray(0, 5).toString('ascii') !== '%PDF-') return { error: 'That file does not look like a valid PDF.' };
-  const filename = typeof value.filename === 'string' ? path.basename(value.filename).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) : 'assignment.pdf';
-  return { value: { filename: filename.toLowerCase().endsWith('.pdf') ? filename : 'assignment.pdf', fileData } };
+  if (!bytes.length || bytes.length > MAX_PDF_BYTES || bytes.toString('base64') !== fileData) return { error: 'This PDF is too large or could not be read. Choose a PDF up to 3 MB.' };
+  if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-') return { error: 'That file does not look like a valid PDF.' };
+  return { value: { filename: 'assignment.pdf', fileData } };
 }
 
 function buildBreakdownRequest(file, model) {
@@ -219,48 +206,34 @@ function sendJson(res, status, data) {
   res.end(body);
 }
 
-function readJson(req, maxBytes = MAX_BODY_BYTES) {
+function parseJson(body, maxBytes) {
+  const encoded = Buffer.isBuffer(body) || typeof body === 'string';
+  const size = Buffer.isBuffer(body) ? body.length : Buffer.byteLength(encoded ? body : JSON.stringify(body));
+  if (size > maxBytes) throw Object.assign(new Error('Request is too large.'), { status: 413 });
+  if (!encoded) return body;
+  try { return JSON.parse(body); } catch { throw Object.assign(new Error('Request must be valid JSON.'), { status: 400 }); }
+}
+
+async function readJson(req, maxBytes = MAX_BODY_BYTES) {
+  if (req.body !== undefined) return parseJson(req.body, maxBytes);
   return new Promise((resolve, reject) => {
-    let body = '';
-    let oversized = false;
-    req.setEncoding('utf8');
+    const chunks = [];
+    let size = 0;
     req.on('data', chunk => {
-      if (oversized) return;
-      body += chunk;
-      if (Buffer.byteLength(body) > maxBytes) { oversized = true; body = ''; reject(Object.assign(new Error('Request is too large.'), { status: 413 })); }
+      if (size > maxBytes) return;
+      size += chunk.length;
+      if (size <= maxBytes) chunks.push(chunk);
+      else {
+        chunks.length = 0;
+        reject(Object.assign(new Error('Request is too large.'), { status: 413 }));
+      }
     });
     req.on('end', () => {
-      if (oversized) return;
-      try { resolve(JSON.parse(body)); } catch { reject(Object.assign(new Error('Request must be valid JSON.'), { status: 400 })); }
+      if (size > maxBytes) return;
+      try { resolve(parseJson(Buffer.concat(chunks, size), maxBytes)); } catch (error) { reject(error); }
     });
     req.on('error', reject);
   });
-}
-
-async function upstreamReason(response) {
-  try {
-    if (typeof response.text !== 'function') return '';
-    const text = await response.text();
-    if (!text) return '';
-    let message = text;
-    try {
-      const parsed = JSON.parse(text);
-      message = (parsed && parsed.error && (parsed.error.message || parsed.error)) || (parsed && parsed.message) || text;
-    } catch {}
-    return String(message).replace(/\s+/g, ' ').slice(0, 300);
-  } catch { return ''; }
-}
-
-function upstreamFailure(scope, response, attempt) {
-  return upstreamReason(response).then(reason => {
-    console.error(`${scope}: OpenRouter returned ${response.status}${reason ? ` (${reason})` : ''} on attempt ${attempt}`);
-    return response.status;
-  });
-}
-
-function upstreamErrorLog(scope, error, attempt) {
-  const detail = error && error.name === 'AbortError' ? `timed out after ${REQUEST_TIMEOUT_MS / 1000}s` : (error && error.message) || String(error);
-  console.error(`${scope}: OpenRouter request failed on attempt ${attempt} (${detail})`);
 }
 
 // The free router picks a different free model for every request, and some of them answer
@@ -278,15 +251,18 @@ async function callOpenRouter(scope, { config, body, fetchImpl, normalize }) {
         body: JSON.stringify(body)
       });
       if (!response.ok) {
-        const upstreamStatus = await upstreamFailure(scope, response, attempt);
+        const upstreamStatus = response.status;
+        console.error(`${scope}: OpenRouter returned ${upstreamStatus} on attempt ${attempt}`);
+        await response.body?.cancel();
         failure = { upstreamStatus };
         if (!RETRYABLE_UPSTREAM_STATUS.has(upstreamStatus)) break;
       } else {
         try { return { ok: true, value: normalize(chatOutputText(await response.json())) }; }
-        catch (error) { console.error(`${scope}: unusable model output on attempt ${attempt} (${(error && error.message) || error})`); failure = {}; }
+        catch { console.error(`${scope}: unusable model output on attempt ${attempt}`); failure = {}; }
       }
     } catch (error) {
-      upstreamErrorLog(scope, error, attempt);
+      const detail = error?.name === 'AbortError' ? 'timed out' : 'failed';
+      console.error(`${scope}: OpenRouter request ${detail} on attempt ${attempt}`);
       failure = {};
     } finally { clearTimeout(timeout); }
   }

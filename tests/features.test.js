@@ -95,3 +95,18 @@ test('live coach stays local until the session explicitly opts in', async () => 
   assert.equal(coach.mode,'preview');
   assert.equal(coach.liveAvailable,true);
 });
+
+test('a PDF request passes cancellation through and sends only file contents', async () => {
+  const signal = new AbortController().signal;
+  let request;
+  const coach = createCoachService({ fetchImpl: async (url, options) => {
+    if (url.endsWith('/health')) return { ok: true, json: async () => ({ mode: 'live' }) };
+    request = options;
+    return { ok: true, json: async () => ({ title: 'Assignment', steps: ['Read the prompt'] }) };
+  } });
+  await coach.checkStatus();
+  const bytes = new TextEncoder().encode('%PDF-1.4');
+  await coach.breakdown({ name: 'student-name.pdf', arrayBuffer: async () => bytes.buffer }, signal);
+  assert.equal(request.signal, signal);
+  assert.deepEqual(JSON.parse(request.body), { fileData: Buffer.from(bytes).toString('base64') });
+});

@@ -1,6 +1,6 @@
 # Daylight
 
-Daylight is a browser prototype for student planning, focus sessions, resources, and an optional study coach with assignment PDF breakdown. Tasks and preferences remain in browser local storage. The included Node server adds stateless AI endpoints and serves the static app; it does not add accounts or a database. You can keep the static frontend on GitHub Pages and run the API on Vercel.
+Daylight is a browser prototype for student planning, focus sessions, resources, and an optional study coach with assignment PDF breakdown. Guest tasks and preferences stay in browser storage. Optional Firebase accounts sync a separate workspace across devices. The Node server serves the static app and provides stateless AI endpoints. GitHub Pages can host the frontend while Vercel hosts the API.
 
 ## Run locally
 
@@ -22,7 +22,7 @@ Open <http://127.0.0.1:4173>. The app stays in local scripted-preview mode unles
 
 OpenRouter's free models have per-minute and daily request limits and can be slower or temporarily busy. If a key is rate-limited, the coach reports that live AI is temporarily unavailable; the local scripted preview keeps working. OpenRouter may require enabling free-model prompt training in its privacy settings before free models are available, so free models may log or train on messages. Use this configuration only with non-identifying content.
 
-In the Coach screen, students can choose a PDF up to 3 MB and review a separate consent notice before it is sent. The file is sent to OpenRouter for PDF parsing and then routed to the configured model. The student edits the suggested task and steps before saving; Daylight does not write the PDF to disk. The `cloudflare-ai` PDF parsing engine is selected to avoid the paid OCR engine, so scanned/image-only assignments may not be readable. Free model providers may log or train on submitted content; avoid personal or identifying details.
+In the Coach screen, students can choose a PDF up to 3 MB and review a separate consent notice before it is sent. Daylight sends the PDF contents under a generic filename to OpenRouter for parsing and routing to the configured model. The student can edit the suggested task and steps before saving. Daylight keeps the upload in memory. The `cloudflare-ai` PDF parser may have trouble reading scanned or image-only assignments. Free model providers may log or train on submitted content, so avoid personal or identifying details.
 
 ## Host the frontend on GitHub Pages with the API elsewhere
 
@@ -34,7 +34,7 @@ GitHub Pages serves static files only, so the coach API needs a separate host. T
    - `OPENROUTER_MODEL=openrouter/free` (optional)
    - `ALLOWED_ORIGINS=https://verityhoangjacob67.github.io,https://daylightt.me` (use your actual Pages/custom-domain origins)
 2. Deploy, then check `https://<your-project>.vercel.app/api/health`. It should return `{"mode":"live"}`.
-3. Edit [api-config.js](./api-config.js) and set `window.DAYLIGHT_API_BASE` to `https://<your-project>.vercel.app/api`. Commit and push. When it is not blank, local `npm start` also calls the remote API; set it back to an empty string for a fully local setup.
+3. Edit [api-config.js](./api-config.js) and set `window.DAYLIGHT_API_BASE` to `https://<your-project>.vercel.app/api`. Commit and push. Loopback hosts such as `127.0.0.1` use the same-origin API.
 4. In GitHub, open **Settings → Pages → Build and deployment** and choose **GitHub Actions** as the source. The workflow in `.github/workflows/pages.yml` publishes only the static HTML, CSS, client JavaScript, public assets, and `CNAME`; it does not publish `server.js`, tests, or `.env`.
 5. Open the Pages URL, choose **Enable live AI** in the Coach screen, and confirm requests go to the Vercel API. If the browser reports a CORS error, add the exact Pages origin to `ALLOWED_ORIGINS` in Vercel and redeploy.
 
@@ -61,7 +61,7 @@ The server sends only the current coach message plus a few short, typed coaching
 
 ## Firebase account sync
 
-The optional account flow uses Firebase Authentication with email/password and stores the signed-in user's Daylight state in Firestore at `users/{uid}/app/state`. Signed-out users keep the existing local browser behavior. Deploy [firestore.rules](./firestore.rules) to the Firebase project before enabling sync:
+The optional account flow uses Firebase Authentication with email/password and stores each account's Daylight workspace in Firestore at `users/{uid}/app/state`. Guest work stays in its own browser workspace. New accounts start with a separate workspace. When changes on this browser and another device conflict, Settings lets the signed-in user choose which copy to keep. Deploy [firestore.rules](./firestore.rules) to the Firebase project before enabling sync.
 
 ```powershell
 firebase deploy --only firestore:rules
@@ -69,7 +69,7 @@ firebase deploy --only firestore:rules
 
 The Firebase web configuration is intentionally client-visible; Firebase Authentication and Firestore rules enforce access. Never place an admin SDK credential or service-account key in the browser.
 
-The coach endpoint applies a 12 KB request body cap and a 500 character message limit. The PDF endpoint caps encoded bodies at 4.5 MB and accepts PDFs up to 3 MB. Both use a 20-request / 10-minute in-memory IP limit, a 40-second upstream timeout, constrained JSON response schemas, CORS origin checks, and generic upstream errors. The server does not log message or file content. The local server binds to `127.0.0.1`; it is not a production deployment configuration.
+The coach endpoint applies a 12 KB request body cap and a 500-character message limit. The PDF endpoint caps encoded bodies at 4.5 MB and accepts PDFs up to 3 MB. Both use up to two 20-second upstream attempts, constrained JSON response schemas, CORS origin checks, and generic upstream errors. Server diagnostics record status and attempt number. The local server defaults to `127.0.0.1` and shares a 20-request per IP limit across both endpoints in each 10-minute window.
 
 ## Checks
 

@@ -52,7 +52,7 @@ const DAYLIGHT_RESOURCES = [
     description: 'Professional guidance on evaluating and treating ADHD in children and adolescents, including school supports.',
     purpose: 'This is a clinical guideline written for health professionals, not a student self-help guide. It explains why educational supports are part of coordinated ADHD care.',
     category: 'Professional guidance', publisher: 'American Academy of Pediatrics · Pediatrics', format: 'Clinical guidance', minutes: 20,
-    kind: 'Professional guidance', url: 'https://publications.aap.org/pediatrics/article/144/4/e20192528/81590/clinical-practice-guideline-for-the-diagnosis',
+    kind: 'Professional guidance', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC7067282/',
     keywords: ['clinical', 'professional', 'school', 'education', 'treatment', 'guideline']
   }
 ];

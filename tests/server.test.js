@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { DEFAULT_ALLOWED_ORIGINS, allowedOrigins, buildBreakdownRequest, buildChatRequest, createAppServer, createRateLimiter, liveConfig, normalizeCoachOutput, validateCoachPayload } = require('../server.js');
+const { MAX_PDF_BYTES, isOriginAllowed, validateBreakdownPayload } = require('../server.js');
 
 async function serveOnce(t, options) {
   const server = createAppServer(options);
@@ -65,6 +66,20 @@ test('assignment requests ask OpenRouter to parse the PDF', () => {
   assert.match(request.messages[1].content[0].file.file_data, /^data:application\/pdf;base64,/);
 });
 
+test('PDF validation handles the size limit and strips the original filename', () => {
+  const bytes = Buffer.alloc(MAX_PDF_BYTES);
+  bytes.write('%PDF-1.4');
+  const fileData = bytes.toString('base64');
+  assert.deepEqual(validateBreakdownPayload({ filename: 'student-name.pdf', fileData }), {
+    value: { filename: 'assignment.pdf', fileData }
+  });
+  const overLimit = Buffer.concat([bytes, Buffer.from('x')]).toString('base64');
+  assert.ok(validateBreakdownPayload({ fileData: overLimit }).error);
+  assert.ok(validateBreakdownPayload({ fileData: 'JVBE Ri0xLjQ=' }).error);
+  const highBit = Buffer.from([0xa5, 0x50, 0x44, 0x46, 0x2d]).toString('base64');
+  assert.ok(validateBreakdownPayload({ fileData: highBit }).error);
+});
+
 test('coach response normalization bounds output and rejects unapproved resource ids', () => {
   const result = normalizeCoachOutput(JSON.stringify({
     reply: 'Try one small step.', action: 'Open the assignment.', strategy: 'tiny-start', detail: 'Optional detail.', resourceId: 'unexpected-link', choices: []
@@ -88,6 +103,17 @@ test('in-memory limiter allows a fixed number of requests within its time window
 test('browser origins default to the Pages site, custom domain, and local development', () => {
   assert.deepEqual([...allowedOrigins({})], DEFAULT_ALLOWED_ORIGINS);
   assert.deepEqual([...allowedOrigins({ ALLOWED_ORIGINS: 'https://example.com/, https://foo.test' })], ['https://example.com', 'https://foo.test']);
+});
+
+test('proxy headers cannot turn an unlisted origin into a same-origin request', () => {
+  const headers = {
+    origin: 'https://example.com',
+    host: 'daylight.test',
+    'x-forwarded-host': 'example.com',
+    'x-forwarded-proto': 'https'
+  };
+  assert.equal(isOriginAllowed({ headers }, {}), false);
+  assert.equal(isOriginAllowed({ headers: { ...headers, origin: 'https://daylight.test' } }, {}, 'https'), true);
 });
 
 test('cross-origin preflight and health requests allow the frontend origin', async t => {

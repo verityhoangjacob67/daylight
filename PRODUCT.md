@@ -30,9 +30,9 @@ Students use Daylight in a browser while organizing assignments, choosing a next
 - Browse, filter, search, and save curated educational resources.
 - Review lightweight progress without streak pressure.
 - Use a scripted local study coach to name common barriers and offer an editable next action, with an optional live AI coach enabled only after explicit session consent.
-- Tasks, preferences, and saved resources remain in browser local storage.
+- Guest tasks, preferences, and saved resources stay in browser storage. Optional Firebase sign-in syncs a separate account workspace.
 - Coach chat is session-only. Live coach requests send only the current message and a small set of typed coaching preferences; the app does not send assignment lists or previous chat history.
-- The app has no sign-in, database, account sync, or production deployment configuration.
+- GitHub Pages can serve the frontend while Vercel hosts the optional AI API.
 - The coach is not treatment or professional care. The product must not make diagnosis, medical, or individualized care claims.
 
 ## Brand Commitments

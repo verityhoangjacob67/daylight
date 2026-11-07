@@ -10,9 +10,9 @@ import {
 import {
   doc,
   getFirestore,
-  getDoc,
-  serverTimestamp,
-  setDoc
+  getDocFromServer,
+  runTransaction,
+  serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
 const config = window.DAYLIGHT_FIREBASE_CONFIG;
@@ -20,8 +20,6 @@ const app = initializeApp(config);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const stateDocument = user => doc(db, 'users', user.uid, 'app', 'state');
-let syncTimer;
-let syncVersion = 0;
 
 const errorMessage = error => {
   const messages = {
@@ -34,48 +32,48 @@ const errorMessage = error => {
   return messages[error?.code] || 'Firebase could not complete that request. Try again.';
 };
 
-async function loadState(user) {
-  const snapshot = await getDoc(stateDocument(user));
-  return snapshot.exists() ? snapshot.data().state : null;
+function readSnapshot(snapshot) {
+  if (!snapshot.exists()) return {state: null, version: null};
+  const {state, version, updatedAt} = snapshot.data();
+  return {state, version: version || `legacy:${updatedAt?.seconds ?? 0}:${updatedAt?.nanoseconds ?? 0}`};
 }
 
-function queueSync(user, state) {
-  const version = ++syncVersion;
-  const snapshot = JSON.parse(JSON.stringify(state));
-  clearTimeout(syncTimer);
-  window.dispatchEvent(new CustomEvent('daylight-sync-status', {detail: {status: 'pending'}}));
-  syncTimer = setTimeout(async () => {
-    try {
-      await setDoc(stateDocument(user), {state: snapshot, updatedAt: serverTimestamp()});
-      if (version !== syncVersion) return;
-      window.dispatchEvent(new CustomEvent('daylight-sync-status', {detail: {status: 'saved'}}));
-    } catch (error) {
-      console.error('Daylight cloud sync failed', error);
-      if (version !== syncVersion) return;
-      window.dispatchEvent(new CustomEvent('daylight-sync-status', {detail: {status: 'error'}}));
-    }
-  }, 500);
+async function loadState(user) {
+  return readSnapshot(await getDocFromServer(stateDocument(user)));
+}
+
+function writeState(user, state, base, version) {
+  const ref = stateDocument(user);
+  return runTransaction(db, async transaction => {
+    const current = readSnapshot(await transaction.get(ref));
+    if (auth.currentUser?.uid !== user.uid || (current.version !== base && current.version !== version)) return false;
+    if (current.version !== version) transaction.set(ref, {state, version, updatedAt: serverTimestamp()});
+    return true;
+  });
 }
 
 window.DAYLIGHT_AUTH = {
   currentUser: null,
   errorMessage,
   loadState,
-  queueSync: state => {
-    if (window.DAYLIGHT_AUTH.currentUser) queueSync(window.DAYLIGHT_AUTH.currentUser, state);
-  },
+  writeState,
   signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
   signUp: async (name, email, password) => {
     const credential = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(credential.user, {displayName: name});
+    try {
+      await updateProfile(credential.user, {displayName: name});
+      if (auth.currentUser?.uid === credential.user.uid) {
+        window.dispatchEvent(new CustomEvent('daylight-auth-profile', {detail: {user: credential.user}}));
+      }
+    } catch (error) {
+      console.error('Daylight could not save the account display name', error.code);
+    }
     return credential;
   },
   signOut: () => signOut(auth)
 };
 
 onAuthStateChanged(auth, user => {
-  syncVersion++;
-  clearTimeout(syncTimer);
   window.DAYLIGHT_AUTH.currentUser = user;
   window.dispatchEvent(new CustomEvent('daylight-auth-state', {detail: {user}}));
 });

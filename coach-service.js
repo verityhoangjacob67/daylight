@@ -1,6 +1,5 @@
-// Scripted local demo only. A production AI adapter must call a server endpoint,
-// where credentials, validation, retention controls, and rate limits can live.
 function resolveApiBase() {
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1', '[::1]'].includes(window.location?.hostname)) return '/api';
   if (typeof window !== 'undefined' && typeof window.DAYLIGHT_API_BASE === 'string' && window.DAYLIGHT_API_BASE.trim()) {
     const base = window.DAYLIGHT_API_BASE.trim().replace(/\/+$/, '');
     if (base) return base;
@@ -14,7 +13,7 @@ function createDaylightCoachService({ delayMs = 380, fetchImpl = (...args) => fe
   let liveAvailable = false;
   async function checkStatus() {
     try {
-      const response = await fetchImpl(`${apiBase}/health`, { headers: { accept: 'application/json' } });
+      const response = await fetchImpl(`${apiBase}/health`, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
       const result = await response.json();
       liveAvailable = response.ok && result.mode === 'live';
       mode = liveAvailable ? 'live-available' : 'preview';
@@ -78,10 +77,10 @@ function createDaylightCoachService({ delayMs = 380, fetchImpl = (...args) => fe
     }, delayMs));
   }
 
-  async function reply(text, context = {}) {
+  async function reply(text, context = {}, signal) {
     if (mode === 'live-enabled' && liveConsent) {
       const response = await fetchImpl(`${apiBase}/coach`, {
-        method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
+        method: 'POST', signal, headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ message: String(text).slice(0, 500), context: {
           challenge: context.challenge || '', attempted: (context.attempted || []).slice(0, 5), preferred: context.preferred || ''
         } })
@@ -93,17 +92,18 @@ function createDaylightCoachService({ delayMs = 380, fetchImpl = (...args) => fe
     return previewReply(text, context);
   }
 
-  async function breakdown(file) {
+  async function breakdown(file, signal) {
     if (!liveAvailable) throw new Error('Live AI is not available right now. You can add the task manually instead.');
     const bytes = new Uint8Array(await file.arrayBuffer());
+    if (signal?.aborted) throw signal.reason;
     let binary = '';
     for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
     const response = await fetchImpl(`${apiBase}/assignment-breakdown`, {
-      method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ filename: file.name, fileData: btoa(binary) })
+      method: 'POST', signal, headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ fileData: btoa(binary) })
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'We couldn’t read that assignment. Try again.');
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(result?.steps)) throw new Error(result?.error || 'We couldn’t read that assignment. Try again.');
     return result;
   }
 
